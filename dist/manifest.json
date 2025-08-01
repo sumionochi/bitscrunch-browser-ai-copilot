@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "BitsCrunch NFT Analytics",
+  "version": "1.0.0",
+  "description": "NFT analytics and market insights extension powered by BitsCrunch",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "BitsCrunch NFT Analytics"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://api.unleashnfts.com/*",
+    "https://opensea.io/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://opensea.io/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "vite.svg",
+    "48": "vite.svg",
+    "128": "vite.svg"
+  }
+}
