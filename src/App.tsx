@@ -632,15 +632,15 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
     ) : (
       <div className="flex gap-2 md:gap-4 mt-0 justify-center items-start">
         {activeTab === "trends" && (
-          <div className="flex flex-col gap-2 sm:gap-4 md:gap-8 pb-2 sm:pb-4 w-full">
-            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <div className="flex flex-col item-center justify-center gap-2 sm:gap-4 md:gap-8 pb-4 w-full">
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full sm:max-w-4xl h-auto border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
               <CardHeader className="p-2 sm:p-4">
-                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                <CardTitle className="text-base sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block">
                   General Market Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2 sm:p-4">
-                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
+                <div className="">
                   {loadingStates.marketTrend ? (
                     <LoadingIndicator message="Loading market data..." />
                   ) : (
@@ -649,14 +649,14 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full sm:max-w-4xl h-auto border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
               <CardHeader className="p-2 sm:p-4">
-                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                <CardTitle className="text-base sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block">
                   Traders Trend
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2 sm:p-4">
-                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
+                <div className="">
                   {loadingStates.traders ? (
                     <LoadingIndicator message="Loading traders data..." />
                   ) : (
@@ -673,14 +673,14 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[32rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full sm:max-w-4xl h-auto border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
               <CardHeader className="p-2 sm:p-4">
-                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                <CardTitle className="text-base sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block">
                   Washtrade Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-2 sm:p-4">
-                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
+                <div className="">
                   {loadingStates.washtrade ? (
                     <LoadingIndicator message="Loading washtrade data..." />
                   ) : (

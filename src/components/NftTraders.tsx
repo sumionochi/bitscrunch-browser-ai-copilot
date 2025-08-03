@@ -6,7 +6,7 @@ import axios from "axios"
 import { Card, CardContent } from "./ui/card"
 import { format } from "date-fns"
 import TraderChart from "./TraderChart"
-import { LoaderCircle, CheckCircle, XCircle, RefreshCw } from "lucide-react"
+import { LoaderCircle, CheckCircle, XCircle } from "lucide-react"
 
 /* ════════════════  TYPES  ════════════════ */
 interface TraderMetrics {
@@ -207,7 +207,6 @@ const NftTraders: React.FC<NftTradersProps> = ({ blockchain, contractAddress, to
   const sequentialFetch = useCallback(async () => {
     if (!apiKey) return
     setIsSeqLoading(true)
-    setError(null) // Clear any previous errors
     initSeq()
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
     try {
@@ -219,12 +218,6 @@ const NftTraders: React.FC<NftTradersProps> = ({ blockchain, contractAddress, to
       setTimeout(() => setSeqTasks([]), 2000)
     }
   }, [fetchMetrics, fetchHistory, apiKey])
-
-  /* ── manual retry handler ── */
-  const handleRetry = useCallback(() => {
-    console.log("Manual retry triggered")
-    sequentialFetch()
-  }, [sequentialFetch])
 
   /* ── debounce trigger ── */
   useEffect(() => {
@@ -276,18 +269,8 @@ const NftTraders: React.FC<NftTradersProps> = ({ blockchain, contractAddress, to
   /* ════════════════  RENDER  ════════════════ */
   if (error)
     return (
-      <div className="space-y-2 sm:space-y-4">
-        <div className="p-2 sm:p-4 bg-red-100 border-2 sm:border-4 border-black font-bold text-xs sm:text-base">
-          {error}
-        </div>
-        <button
-          onClick={handleRetry}
-          disabled={isSeqLoading}
-          className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 font-bold text-xs sm:text-sm bg-red-200 hover:bg-red-300 disabled:bg-gray-200 disabled:cursor-not-allowed border-2 sm:border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center space-x-1 sm:space-x-2"
-        >
-          <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isSeqLoading ? 'animate-spin' : ''}`} />
-          <span>{isSeqLoading ? 'Retrying...' : 'Retry'}</span>
-        </button>
+      <div className="p-2 sm:p-4 bg-red-100 border-2 sm:border-4 border-black font-bold text-xs sm:text-base">
+        {error}
       </div>
     )
 
@@ -321,24 +304,14 @@ const NftTraders: React.FC<NftTradersProps> = ({ blockchain, contractAddress, to
                   </option>
                 ))}
               </select>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => setShowChart(!showChart)}
-                  className={`w-full sm:w-auto px-4 sm:px-6 py-1 sm:py-2 font-bold text-xs sm:text-sm ${
-                    showChart ? "bg-orange-200" : "bg-blue-200"
-                  } border-2 sm:border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all`}
-                >
-                  {showChart ? "Hide Chart" : "Show Chart"}
-                </button>
-                <button
-                  onClick={handleRetry}
-                  disabled={isSeqLoading}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-1 sm:py-2 font-bold text-xs sm:text-sm bg-green-200 hover:bg-green-300 disabled:bg-gray-200 disabled:cursor-not-allowed border-2 sm:border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center space-x-1 sm:space-x-2"
-                >
-                  <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isSeqLoading ? 'animate-spin' : ''}`} />
-                  <span>{isSeqLoading ? 'Refreshing...' : 'Refresh'}</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setShowChart(!showChart)}
+                className={`w-full sm:w-auto px-4 sm:px-6 py-1 sm:py-2 font-bold text-xs sm:text-sm ${
+                  showChart ? "bg-orange-200" : "bg-blue-200"
+                } border-2 sm:border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all`}
+              >
+                {showChart ? "Hide Chart" : "Show Chart"}
+              </button>
             </div>
             {showChart && chartData.length > 0 && (
               <div className="mt-2 sm:mt-4 border-2 sm:border-4 border-black p-2 sm:p-4">

@@ -4,7 +4,7 @@ import type React from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import axios from "axios"
 import { format } from "date-fns"
-import { LoaderCircle } from "lucide-react"
+import { LoaderCircle, RefreshCw } from "lucide-react"
 
 /* ──────────────────────────   Types & Interfaces   ────────────────────────── */
 interface NftTransaction {
@@ -151,9 +151,10 @@ const NftTransaction: React.FC<NftTransactionProps> = ({ blockchain, contractAdd
   const RetryBtn = () => (
     <button
       onClick={retry}
-      className="ml-1 sm:ml-3 bg-blue-200 px-2 sm:px-4 py-1 border border-black sm:border-2 hover:bg-blue-300 transition-all text-xs sm:text-sm font-bold"
+      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 font-bold text-xs sm:text-sm bg-red-200 hover:bg-red-300 disabled:bg-gray-200 disabled:cursor-not-allowed border-2 sm:border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center space-x-1 sm:space-x-2"
     >
-      Retry
+      <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4`} />
+      <span>{'Retry'}</span>
     </button>
   )
 
@@ -172,12 +173,14 @@ const NftTransaction: React.FC<NftTransactionProps> = ({ blockchain, contractAdd
 
   if (!transactions.length)
     return (
+      <>
       <div className="p-2 sm:p-4 bg-yellow-100 border-2 sm:border-4 border-black font-bold text-xs sm:text-base">
         <div className="flex flex-col sm:flex-row sm:items-center">
           <span className="mb-2 sm:mb-0">No transactions found for this NFT.</span>
-          <RetryBtn />
         </div>
       </div>
+      <RetryBtn />
+      </>
     )
 
   return (
