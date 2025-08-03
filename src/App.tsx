@@ -16,6 +16,7 @@ import NftTraders from "./components/NftTraders"
 import NftAnalytics from './components/NftAnalytics'
 import { useChromeExtension } from './hooks/useChromeExtension'
 import { Button } from "./components/ui/button"
+import { Separator } from "./components/ui/separator.tsx"
 
 export interface Blockchain {
   id: number;
@@ -556,7 +557,7 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
   }
 
   return (
-  <div className="w-full min-h-screen bg-rose-400 overflow-hidden flex flex-col p-8 pl-4">
+  <div className="w-full min-h-screen bg-rose-400 overflow-hidden flex flex-col p-4">
     {error && (
       <div className="p-3 md:p-4 bg-red-100 border-4 border-black text-black font-bold mb-4 text-sm md:text-base">
         {error}
@@ -611,303 +612,320 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
       </div>
     </div>
 
-    <main className="flex-1 overflow-y-auto p-2 md:p-4">
-      <Filters
-        blockchain={blockchain}
-        setBlockchain={setBlockchain}
-        optionBlockchain={optionBlockchain}
-        setBlockchainString={setBlockchainString}
-        metric={metric}
-        setMetric={setMetric}
-        metricsData={metricsData}
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-      />
+    <Filters
+      blockchain={blockchain}
+      setBlockchain={setBlockchain}
+      optionBlockchain={optionBlockchain}
+      setBlockchainString={setBlockchainString}
+      metric={metric}
+      setMetric={setMetric}
+      metricsData={metricsData}
+      timeRange={timeRange}
+      setTimeRange={setTimeRange}
+    />
 
-      {isSequentialLoading && activeTab === "trends" ? (
-        <div className="flex justify-center items-center h-64">
-          <LoadingIndicator message="Loading trend analysis sequentially..." />
-        </div>
-      ) : (
-        <div className="flex gap-2 md:gap-4 pb-40 mt-0 justify-center items-start">
-          {activeTab === "trends" && (
-            <div className="flex flex-col gap-4 md:gap-8 pb-4 w-full">
-              <Card className="bg-white border-4 w-full max-w-4xl h-auto min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-                <CardHeader>
-                  <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">General Market Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-68 md:h-64 lg:h-80">
-                    {loadingStates.marketTrend ? (
-                      <LoadingIndicator message="Loading market data..." />
-                    ) : (
-                      <Chart data={data} metric={metric} />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white border-4 w-[40rem] h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-                <CardHeader>
-                  <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Traders Trend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-68 md:h-64 lg:h-80">
-                    {loadingStates.traders ? (
-                      <LoadingIndicator message="Loading traders data..." />
-                    ) : (
-                      <Chart data={Tradersdata?.block_dates.map((date, index) => ({
-                        timestamp: date,
-                        traders: Tradersdata.traders_trend[index],
-                        buyers: Tradersdata.traders_buyers_trend[index],
-                        sellers: Tradersdata.traders_sellers_trend[index]
-                      }))} showTraders={true} />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white border-4 w-[40rem] h-[32rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-                <CardHeader>
-                  <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Washtrade Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-68 md:h-64 lg:h-80">
-                    {loadingStates.washtrade ? (
-                      <LoadingIndicator message="Loading washtrade data..." />
-                    ) : (
-                      <Chart data={washtradeData?.block_dates.map((date, index) => ({
-                        timestamp: date,
-                        washtrade_volume: parseFloat(washtradeData.washtrade_volume_trend[index].toFixed(2)),
-                        washtrade_assets: parseFloat(washtradeData.washtrade_assets_trend[index].toFixed(2)),
-                        washtrade_suspect_sales: parseFloat(washtradeData.washtrade_suspect_sales_trend[index].toFixed(2))
-                      }))} showWashtrade={true} />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          {activeTab === "nft-details" && (
-            <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+    {isSequentialLoading && activeTab === "trends" ? (
+      <div className="flex justify-center items-center h-64">
+        <LoadingIndicator message="Loading trend analysis sequentially..." />
+      </div>
+    ) : (
+      <div className="flex gap-2 md:gap-4 mt-0 justify-center items-start">
+        {activeTab === "trends" && (
+          <div className="flex flex-col gap-4 md:gap-8 pb-4 w-full">
+            <Card className="bg-white border-4 w-full max-w-4xl h-auto min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Details</CardTitle>
+                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">General Market Analysis</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 md:space-y-4">
-                  {isSidepanel && (
-                    <div className="bg-blue-100 p-3 md:p-4 border-4 border-black">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs md:text-sm font-bold">Current Page: {tabInfo?.title || 'Loading...'}</p>
-                          <p className="text-xs text-gray-600 truncate">{tabInfo?.url || ''}</p>
-                        </div>
-                        <Button
-                          onClick={refreshTabInfo}
-                          disabled={tabLoading}
-                          size="sm"
-                          variant="outline"
-                          className="border-2 border-black"
-                        >
-                          <RefreshCw className={`h-4 w-4 ${tabLoading ? 'animate-spin' : ''}`} />
-                        </Button>
-                      </div>
-                    </div>
+                <div className="h-68 md:h-64 lg:h-80">
+                  {loadingStates.marketTrend ? (
+                    <LoadingIndicator message="Loading market data..." />
+                  ) : (
+                    <Chart data={data} metric={metric} />
                   )}
-                  <button
-                    onClick={() => {
-                      if (isSidepanel && tabInfo?.nftDetails) {
-                        setNftDetails(tabInfo.nftDetails);
-                        setError(null);
-                      } else {
-                        // Fallback for popup mode
-                        if (typeof chrome !== 'undefined' && chrome.runtime) {
-                          chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
-                            if (response?.nftDetails) {
-                              setNftDetails(response.nftDetails);
-                              setError(null);
-                            } else {
-                              setError('Unable to extract NFT details. Please make sure you are on an OpenSea NFT page.');
-                              setNftDetails(null);
-                            }
-                          });
-                        }
-                      }
-                    }}
-                    className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
-                  >
-                    {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
-                  </button>
-                  {nftDetails && (
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
-                        <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-4 w-[40rem] h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <CardHeader>
+                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Traders Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-68 md:h-64 lg:h-80">
+                  {loadingStates.traders ? (
+                    <LoadingIndicator message="Loading traders data..." />
+                  ) : (
+                    <Chart data={Tradersdata?.block_dates.map((date, index) => ({
+                      timestamp: date,
+                      traders: Tradersdata.traders_trend[index],
+                      buyers: Tradersdata.traders_buyers_trend[index],
+                      sellers: Tradersdata.traders_sellers_trend[index]
+                    }))} showTraders={true} />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-4 w-[40rem] h-[32rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <CardHeader>
+                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Washtrade Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-68 md:h-64 lg:h-80">
+                  {loadingStates.washtrade ? (
+                    <LoadingIndicator message="Loading washtrade data..." />
+                  ) : (
+                    <Chart data={washtradeData?.block_dates.map((date, index) => ({
+                      timestamp: date,
+                      washtrade_volume: parseFloat(washtradeData.washtrade_volume_trend[index].toFixed(2)),
+                      washtrade_assets: parseFloat(washtradeData.washtrade_assets_trend[index].toFixed(2)),
+                      washtrade_suspect_sales: parseFloat(washtradeData.washtrade_suspect_sales_trend[index].toFixed(2))
+                    }))} showWashtrade={true} />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        {activeTab === "nft-details" && (
+          <Card className="bg-white border-4 space-y-4 border-black p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all min-w-0 max-w-full">
+            <CardHeader className="min-w-0">
+              <CardTitle className="text-lg text-center md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block min-w-0 break-words">
+                NFT Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              <div className="space-y-3 md:space-y-4 min-w-0">
+                <Separator className="bg-black"/>
+                {isSidepanel && (
+                  <div className="bg-blue-100 flex flex-col gap-4 p-3 border-4 border-black min-w-0">
+                    <div className="flex items-center justify-between min-w-0 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs md:text-sm font-bold truncate">
+                          Current Page: {tabInfo?.title || 'Loading...'}
+                        </p>
+                        <p className="text-xs text-gray-600 truncate min-w-0">
+                          {tabInfo?.url || ''}
+                        </p>
                       </div>
-                      <button
-                        onClick={fetchNftPriceEstimates}
-                        disabled={loadingStates.nftPrice || loadingStates.collectionPrice}
-                        className="w-full bg-green-200 hover:bg-green-300 disabled:bg-gray-200 disabled:cursor-not-allowed text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center text-sm md:text-base"
+                      <Button
+                        onClick={refreshTabInfo}
+                        disabled={tabLoading}
+                        size="sm"
+                        variant="outline"
+                        className="border-2 rounded-none border-black flex-shrink-0"
                       >
-                        {loadingStates.nftPrice || loadingStates.collectionPrice ? (
-                          <>
-                            <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                            <span className="text-xs md:text-sm">{loadingStates.nftPrice ? 'Analyzing NFT...' : 'Analyzing Collection...'}</span>
-                          </>
-                        ) : (
-                          'Analyze NFT Price'
-                        )}
-                      </button>
-                      
-                      <NftPriceCard data={priceEstimate} />
-                      <NftCollectionPriceCard data={collectionPriceEstimate} />
+                        <RefreshCw className={`h-4 w-4 ${tabLoading ? 'animate-spin' : ''}`} />
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {activeTab === "nft-transaction" && (
-            <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 md:space-y-4">
-                  <button
-                    onClick={() => {
-                      if (isSidepanel && tabInfo?.nftDetails) {
-                        setNftDetails(tabInfo.nftDetails);
-                      } else {
-                        // Fallback for popup mode
-                        if (typeof chrome !== 'undefined' && chrome.runtime) {
-                          chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
-                            if (response.nftDetails) {
-                              setNftDetails(response.nftDetails);
-                            }
-                          });
-                        }
+                  </div>
+                )}
+                
+                <button
+                  onClick={() => {
+                    if (isSidepanel && tabInfo?.nftDetails) {
+                      setNftDetails(tabInfo.nftDetails);
+                      setError(null);
+                    } else {
+                      if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
+                          if (response?.nftDetails) {
+                            setNftDetails(response.nftDetails);
+                            setError(null);
+                          } else {
+                            setError('Unable to extract NFT details. Please make sure you are on an OpenSea NFT page.');
+                            setNftDetails(null);
+                          }
+                        });
                       }
-                    }}
-                    className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
-                  >
-                    {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
-                  </button>
-                  {nftDetails && (
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
-                        <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
-                      </div>
-                      <NftTransaction
-                        blockchain={nftDetails.blockchain}
-                        contractAddress={nftDetails.contractAddress}
-                        tokenId={nftDetails.tokenId}
-                        timeRange={timeRange}
-                        setTimeRange={setTimeRange}
-                        apiKey={apiKey}
-                      />
+                    }
+                  }}
+                  className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base min-w-0 break-words"
+                >
+                  {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
+                </button>
+                
+                {nftDetails && (
+                  <div className="space-y-3 md:space-y-4 min-w-0">
+                    <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black min-w-0">
+                      <p className="text-xs md:text-sm font-bold min-w-0">
+                        Blockchain: <span className="text-blue-600 break-words">{nftDetails.blockchain}</span>
+                      </p>
+                      <p className="text-xs md:text-sm font-bold min-w-0">
+                        Contract Address: <span className="text-blue-600 break-all font-mono text-xs">{nftDetails.contractAddress}</span>
+                      </p>
+                      <p className="text-xs md:text-sm font-bold min-w-0">
+                        Token ID: <span className="text-blue-600 break-words">{nftDetails.tokenId}</span>
+                      </p>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {activeTab === "nft-traders" && (
-            <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Traders Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 md:space-y-4">
-                  <button
-                    onClick={() => {
-                      if (isSidepanel && tabInfo?.nftDetails) {
-                        setNftDetails(tabInfo.nftDetails);
-                      } else {
-                        // Fallback for popup mode
-                        if (typeof chrome !== 'undefined' && chrome.runtime) {
-                          chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
-                            if (response.nftDetails) {
-                              setNftDetails(response.nftDetails);
-                            }
-                          });
-                        }
+
+                    <Separator className="bg-black"/>
+                    
+                    <button
+                      onClick={fetchNftPriceEstimates}
+                      disabled={loadingStates.nftPrice || loadingStates.collectionPrice}
+                      className="w-full bg-green-200 hover:bg-green-300 disabled:bg-gray-200 disabled:cursor-not-allowed text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center text-sm md:text-base min-w-0"
+                    >
+                      {loadingStates.nftPrice || loadingStates.collectionPrice ? (
+                        <div className="flex items-center min-w-0">
+                          <LoaderCircle className="h-4 w-4 animate-spin mr-2 flex-shrink-0" />
+                          <span className="text-xs md:text-sm truncate">
+                            {loadingStates.nftPrice ? 'Analyzing NFT...' : 'Analyzing Collection...'}
+                          </span>
+                        </div>
+                      ) : (
+                        'Analyze NFT Price'
+                      )}
+                    </button>
+                    
+                    <NftPriceCard data={priceEstimate} />
+                    <NftCollectionPriceCard data={collectionPriceEstimate} />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {activeTab === "nft-transaction" && (
+          <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader>
+              <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <button
+                  onClick={() => {
+                    if (isSidepanel && tabInfo?.nftDetails) {
+                      setNftDetails(tabInfo.nftDetails);
+                    } else {
+                      // Fallback for popup mode
+                      if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
+                          if (response.nftDetails) {
+                            setNftDetails(response.nftDetails);
+                          }
+                        });
                       }
-                    }}
-                    className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
-                  >
-                    {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
-                  </button>
-                  {nftDetails && (
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
-                        <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
-                      </div>
-                      <NftTraders
-                        blockchain={nftDetails.blockchain}
-                        contractAddress={nftDetails.contractAddress}
-                        tokenId={nftDetails.tokenId}
-                        timeRange={timeRange}
-                        apiKey={apiKey}
-                      />
+                    }
+                  }}
+                  className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
+                >
+                  {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
+                </button>
+                {nftDetails && (
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
+                      <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {activeTab === "nft-analytics" && (
-            <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 md:space-y-4">
-                  <button
-                    onClick={() => {
-                      if (isSidepanel && tabInfo?.nftDetails) {
-                        setNftDetails(tabInfo.nftDetails);
-                      } else {
-                        // Fallback for popup mode
-                        if (typeof chrome !== 'undefined' && chrome.runtime) {
-                          chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
-                            if (response.nftDetails) {
-                              setNftDetails(response.nftDetails);
-                            }
-                          });
-                        }
+                    <NftTransaction
+                      blockchain={nftDetails.blockchain}
+                      contractAddress={nftDetails.contractAddress}
+                      tokenId={nftDetails.tokenId}
+                      timeRange={timeRange}
+                      setTimeRange={setTimeRange}
+                      apiKey={apiKey}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {activeTab === "nft-traders" && (
+          <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader>
+              <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Traders Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <button
+                  onClick={() => {
+                    if (isSidepanel && tabInfo?.nftDetails) {
+                      setNftDetails(tabInfo.nftDetails);
+                    } else {
+                      // Fallback for popup mode
+                      if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
+                          if (response.nftDetails) {
+                            setNftDetails(response.nftDetails);
+                          }
+                        });
                       }
-                    }}
-                    className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
-                  >
-                    {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
-                  </button>
-                  {nftDetails && (
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
-                        <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
-                        <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
-                      </div>
-                      <NftAnalytics
-                        blockchain={nftDetails.blockchain}
-                        contractAddress={nftDetails.contractAddress}
-                        tokenId={nftDetails.tokenId}
-                        timeRange={timeRange}
-                        apiKey={apiKey}
-                      />
+                    }
+                  }}
+                  className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
+                >
+                  {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
+                </button>
+                {nftDetails && (
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
+                      <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-    </main>
+                    <NftTraders
+                      blockchain={nftDetails.blockchain}
+                      contractAddress={nftDetails.contractAddress}
+                      tokenId={nftDetails.tokenId}
+                      timeRange={timeRange}
+                      apiKey={apiKey}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {activeTab === "nft-analytics" && (
+          <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader>
+              <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 md:space-y-4">
+                <button
+                  onClick={() => {
+                    if (isSidepanel && tabInfo?.nftDetails) {
+                      setNftDetails(tabInfo.nftDetails);
+                    } else {
+                      // Fallback for popup mode
+                      if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        chrome.runtime.sendMessage({ type: 'GET_NFT_DETAILS' }, (response: any) => {
+                          if (response.nftDetails) {
+                            setNftDetails(response.nftDetails);
+                          }
+                        });
+                      }
+                    }
+                  }}
+                  className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base"
+                >
+                  {isSidepanel ? 'Use Current Page NFT' : 'Extract NFT Details'}
+                </button>
+                {nftDetails && (
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black">
+                      <p className="text-xs md:text-sm font-bold">Blockchain: <span className="text-blue-600">{nftDetails.blockchain}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Contract Address: <span className="text-blue-600 break-all">{nftDetails.contractAddress}</span></p>
+                      <p className="text-xs md:text-sm font-bold">Token ID: <span className="text-blue-600">{nftDetails.tokenId}</span></p>
+                    </div>
+                    <NftAnalytics
+                      blockchain={nftDetails.blockchain}
+                      contractAddress={nftDetails.contractAddress}
+                      tokenId={nftDetails.tokenId}
+                      timeRange={timeRange}
+                      apiKey={apiKey}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    )}
     </div>
   )
 }
