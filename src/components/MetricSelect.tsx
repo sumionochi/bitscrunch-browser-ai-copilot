@@ -29,9 +29,9 @@ const MetricSelect: React.FC<MetricSelectProps> = ({
       value={metric}
       onValueChange={setMetric}
     >
-      <SelectTrigger className="h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      <SelectTrigger className="h-10 md:h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
         <SelectValue>
-          <span>{currentMetric?.label || "Select Metric"}</span>
+          <span className="text-xs md:text-sm">{currentMetric?.label || "Select Metric"}</span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="border-4 border-black bg-white text-black max-h-60 overflow-y-auto">
@@ -40,7 +40,7 @@ const MetricSelect: React.FC<MetricSelectProps> = ({
             <SelectItem
               key={metric.value}
               value={metric.value}
-              className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer"
+              className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer text-xs md:text-sm"
             >
               {metric.label}
             </SelectItem>

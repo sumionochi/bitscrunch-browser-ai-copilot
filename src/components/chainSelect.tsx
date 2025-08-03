@@ -77,22 +77,22 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
       value={currentValue?.value || blockchainOptions[0].value}
       onValueChange={handleValueChange}
     >
-      <SelectTrigger className="h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      <SelectTrigger className="h-10 md:h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
         <div className="flex items-center gap-2">
           {currentValue && (
             <>
               {imageErrors[currentValue.name] ? (
-                <CircleDollarSign className="w-6 h-6 rounded-full" />
+                <CircleDollarSign className="w-5 h-5 md:w-6 md:h-6 rounded-full" />
               ) : (
                 <img
                   src={currentValue.icon}
                   alt={currentValue.label}
-                  className="w-6 h-6 rounded-full"
+                  className="w-5 h-5 md:w-6 md:h-6 rounded-full"
                   onError={() => handleImageError(currentValue.name)}
                 />
               )}
               <SelectValue>
-                <span>{currentValue.label}</span>
+                <span className="text-xs md:text-sm">{currentValue.label}</span>
               </SelectValue>
             </>
           )}

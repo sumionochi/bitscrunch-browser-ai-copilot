@@ -27,8 +27,8 @@ const Filters: React.FC<FiltersProps> = ({
   setTimeRange,
 }) => {
   return (
-    <div className="bg-teal-100 p-3 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all mb-6 mt-2 relative z-40">
-      <div className="flex flex-row gap-6 justify-center">
+    <div className="bg-teal-100 p-2 md:p-3 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all mb-4 md:mb-6 mt-2 relative z-40">
+      <div className="flex flex-col md:flex-row gap-2 md:gap-6 justify-center">
         <ChainSelect
           blockchain={blockchain}
           setBlockchain={setBlockchain}

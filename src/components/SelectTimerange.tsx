@@ -27,9 +27,9 @@ export const SelectTimerange: React.FC<SelectTimerangeProps> = ({
 
   return (
     <Select value={timeRange} onValueChange={setTimeRange}>
-      <SelectTrigger className="h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      <SelectTrigger className="h-10 md:h-12 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
         <SelectValue>
-          {timeRangeOptions.find((option) => option.value === timeRange)?.label}
+          <span className="text-xs md:text-sm">{timeRangeOptions.find((option) => option.value === timeRange)?.label}</span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="border-4 border-black bg-white text-black">
@@ -38,7 +38,7 @@ export const SelectTimerange: React.FC<SelectTimerangeProps> = ({
             <SelectItem
               key={option.value}
               value={option.value}
-              className="hover:bg-zinc-700 focus:bg-blue-500 focus:text-white cursor-pointer"
+              className="hover:bg-zinc-700 focus:bg-blue-500 focus:text-white cursor-pointer text-xs md:text-sm"
             >
               {option.label}
             </SelectItem>
