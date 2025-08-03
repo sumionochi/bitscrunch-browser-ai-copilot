@@ -632,13 +632,15 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
     ) : (
       <div className="flex gap-2 md:gap-4 mt-0 justify-center items-start">
         {activeTab === "trends" && (
-          <div className="flex flex-col gap-4 md:gap-8 pb-4 w-full">
-            <Card className="bg-white border-4 w-full max-w-4xl h-auto min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">General Market Analysis</CardTitle>
+          <div className="flex flex-col gap-2 sm:gap-4 md:gap-8 pb-2 sm:pb-4 w-full">
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <CardHeader className="p-2 sm:p-4">
+                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                  General Market Analysis
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-68 md:h-64 lg:h-80">
+              <CardContent className="p-2 sm:p-4">
+                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
                   {loadingStates.marketTrend ? (
                     <LoadingIndicator message="Loading market data..." />
                   ) : (
@@ -647,40 +649,52 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white border-4 w-[40rem] h-[28rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Traders Trend</CardTitle>
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[28rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <CardHeader className="p-2 sm:p-4">
+                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                  Traders Trend
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-68 md:h-64 lg:h-80">
+              <CardContent className="p-2 sm:p-4">
+                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
                   {loadingStates.traders ? (
                     <LoadingIndicator message="Loading traders data..." />
                   ) : (
-                    <Chart data={Tradersdata?.block_dates.map((date, index) => ({
-                      timestamp: date,
-                      traders: Tradersdata.traders_trend[index],
-                      buyers: Tradersdata.traders_buyers_trend[index],
-                      sellers: Tradersdata.traders_sellers_trend[index]
-                    }))} showTraders={true} />
+                    <Chart
+                      data={Tradersdata?.block_dates.map((date, index) => ({
+                        timestamp: date,
+                        traders: Tradersdata.traders_trend[index],
+                        buyers: Tradersdata.traders_buyers_trend[index],
+                        sellers: Tradersdata.traders_sellers_trend[index],
+                      }))}
+                      showTraders={true}
+                    />
                   )}
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white border-4 w-[40rem] h-[32rem] border-black p-0 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <CardHeader>
-                <CardTitle className="text-xl text-center font-black uppercase bg-orange-200 p-2 border-4 border-black inline-block">Washtrade Analysis</CardTitle>
+            <Card className="bg-white border-2 sm:border-4 w-full max-w-full h-auto min-h-[16rem] sm:min-h-[20rem] md:min-h-[32rem] border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <CardHeader className="p-2 sm:p-4">
+                <CardTitle className="text-sm sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block mx-auto">
+                  Washtrade Analysis
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-68 md:h-64 lg:h-80">
+              <CardContent className="p-2 sm:p-4">
+                <div className="h-48 sm:h-68 md:h-64 lg:h-80">
                   {loadingStates.washtrade ? (
                     <LoadingIndicator message="Loading washtrade data..." />
                   ) : (
-                    <Chart data={washtradeData?.block_dates.map((date, index) => ({
-                      timestamp: date,
-                      washtrade_volume: parseFloat(washtradeData.washtrade_volume_trend[index].toFixed(2)),
-                      washtrade_assets: parseFloat(washtradeData.washtrade_assets_trend[index].toFixed(2)),
-                      washtrade_suspect_sales: parseFloat(washtradeData.washtrade_suspect_sales_trend[index].toFixed(2))
-                    }))} showWashtrade={true} />
+                    <Chart
+                      data={washtradeData?.block_dates.map((date, index) => ({
+                        timestamp: date,
+                        washtrade_volume: Number.parseFloat(washtradeData.washtrade_volume_trend[index].toFixed(2)),
+                        washtrade_assets: Number.parseFloat(washtradeData.washtrade_assets_trend[index].toFixed(2)),
+                        washtrade_suspect_sales: Number.parseFloat(
+                          washtradeData.washtrade_suspect_sales_trend[index].toFixed(2),
+                        ),
+                      }))}
+                      showWashtrade={true}
+                    />
                   )}
                 </div>
               </CardContent>
