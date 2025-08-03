@@ -834,12 +834,12 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
           </Card>
         )}
         {activeTab === "nft-traders" && (
-          <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-            <CardHeader>
-              <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Traders Analysis</CardTitle>
+          <Card className="bg-white space-y-4 border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader className="text-center">
+              <CardTitle className="text-lg text-center md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Traders Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 md:space-y-4">
+              <div className="space-y-4">
                 <button
                   onClick={() => {
                     if (isSidepanel && tabInfo?.nftDetails) {
@@ -880,12 +880,12 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
           </Card>
         )}
         {activeTab === "nft-analytics" && (
-          <Card className="bg-white border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
-            <CardHeader>
-              <CardTitle className="text-lg md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Analytics</CardTitle>
+          <Card className="bg-white space-y-4 border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader className="text-center">
+              <CardTitle className="text-lg text-center md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">NFT Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 md:space-y-4">
+              <div className="space-y-4">
                 <button
                   onClick={() => {
                     if (isSidepanel && tabInfo?.nftDetails) {
