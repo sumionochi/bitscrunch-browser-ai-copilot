@@ -1,48 +1,81 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
-import axios from 'axios'
-import { LoaderCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
-import { Button } from './ui/button'
-import { Separator } from './ui/separator'
+"use client"
+
+import type React from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
+import axios from "axios"
+import {
+  LoaderCircle,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Coins,
+  Shield,
+  BarChart3,
+  Users,
+  Activity,
+} from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  RadialBarChart,
+  RadialBar,
+} from "recharts"
 
 interface WalletInfo {
-  address: string;
-  blockchain: string;
+  address: string
+  blockchain: string
 }
 
 interface CacheData {
-  data: any;
-  timestamp: number;
-  expiresIn: number;
+  data: any
+  timestamp: number
+  expiresIn: number
 }
 
 interface SequentialTaskStatus {
-  name: string;
-  status: 'pending' | 'loading' | 'success' | 'error';
-  message: string;
+  name: string
+  status: "pending" | "loading" | "success" | "error"
+  message: string
 }
 
 interface LoadingState {
-  defiBalance: boolean;
-  nftBalance: boolean;
-  tokenBalance: boolean;
-  walletLabel: boolean;
-  nftProfile: boolean;
-  walletScore: boolean;
-  walletMetrics: boolean;
-  nftAnalytics: boolean;
-  nftScores: boolean;
-  nftTraders: boolean;
-  nftWashtrade: boolean;
+  defiBalance: boolean
+  nftBalance: boolean
+  tokenBalance: boolean
+  walletLabel: boolean
+  nftProfile: boolean
+  walletScore: boolean
+  walletMetrics: boolean
+  nftAnalytics: boolean
+  nftScores: boolean
+  nftTraders: boolean
+  nftWashtrade: boolean
 }
 
 interface WalletAnalysisProps {
-  apiKey: string;
-  tabInfo?: any;
-  isSidepanel?: boolean;
-  refreshTabInfo?: () => void;
-  tabLoading?: boolean;
-  timeRange: string;
+  apiKey: string
+  tabInfo?: any
+  isSidepanel?: boolean
+  refreshTabInfo?: () => void
+  tabLoading?: boolean
+  timeRange: string
 }
 
 // Cache duration in milliseconds
@@ -58,7 +91,12 @@ const CACHE_DURATION = {
   NFT_SCORES: 10 * 60 * 1000, // 10 minutes
   NFT_TRADERS: 10 * 60 * 1000, // 10 minutes
   NFT_WASHTRADE: 10 * 60 * 1000, // 10 minutes
-};
+}
+
+const ITEMS_PER_PAGE = 6
+
+// declare chrome so that typescript doesn't complain
+declare var chrome: any
 
 const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
   apiKey,
@@ -66,13 +104,17 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
   isSidepanel = false,
   refreshTabInfo,
   tabLoading = false,
-  timeRange
+  timeRange,
 }) => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSequentialLoading, setIsSequentialLoading] = useState(false)
   const [sequentialTasks, setSequentialTasks] = useState<SequentialTaskStatus[]>([])
-  
+
+  // Pagination states
+  const [nftPage, setNftPage] = useState(1)
+  const [tokenPage, setTokenPage] = useState(1)
+
   // Loading states for each API
   const [loadingStates, setLoadingStates] = useState<LoadingState>({
     defiBalance: false,
@@ -98,17 +140,8 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
   const [nftTraders, setNftTraders] = useState<any>(null)
 
   // Which chain to query for wallet-label look-up
-const [labelChain, setLabelChain] = useState<string>('ethereum');
-
-const BLOCKCHAIN_OPTIONS = [
-  'avalanche',
-  'bitcoin',
-  'binance',
-  'ethereum',
-  'linea',
-  'polygon',
-  'solana',
-];
+  const [labelChain, setLabelChain] = useState<string>("ethereum")
+  const BLOCKCHAIN_OPTIONS = ["avalanche", "bitcoin", "binance", "ethereum", "linea", "polygon", "solana"]
 
   // Cache storage
   const cacheRef = useRef<{ [key: string]: CacheData }>({})
@@ -117,21 +150,20 @@ const BLOCKCHAIN_OPTIONS = [
   const extractWalletFromUrl = (url: string): WalletInfo | null => {
     try {
       // Pattern for OpenSea wallet URLs: https://opensea.io/0x...
-      const walletMatch = url.match(/opensea\.io\/([^\/\?]+)/)
-      
+      const walletMatch = url.match(/opensea\.io\/([^/?]+)/)
       if (walletMatch && walletMatch[1]) {
         const address = walletMatch[1]
         // Check if it's a valid Ethereum address (starts with 0x and is 42 characters)
-        if (address.startsWith('0x') && address.length === 42) {
+        if (address.startsWith("0x") && address.length === 42) {
           return {
             address: address,
-            blockchain: 'ethereum' // Default to ethereum, can be made configurable
+            blockchain: "ethereum", // Default to ethereum, can be made configurable
           }
         }
       }
       return null
     } catch (error) {
-      console.error('Error extracting wallet from URL:', error)
+      console.error("Error extracting wallet from URL:", error)
       return null
     }
   }
@@ -159,130 +191,128 @@ const BLOCKCHAIN_OPTIONS = [
 
   // Update loading state
   const updateLoadingState = (key: keyof LoadingState, value: boolean) => {
-    setLoadingStates(prev => ({ ...prev, [key]: value }))
+    setLoadingStates((prev) => ({ ...prev, [key]: value }))
   }
 
   // Update sequential task status
-  const updateSequentialTaskStatus = (taskName: string, status: SequentialTaskStatus['status'], message: string) => {
-    setSequentialTasks(prev => prev.map(task => 
-      task.name === taskName ? { ...task, status, message } : task
-    ))
+  const updateSequentialTaskStatus = (taskName: string, status: SequentialTaskStatus["status"], message: string) => {
+    setSequentialTasks((prev) => prev.map((task) => (task.name === taskName ? { ...task, status, message } : task)))
   }
 
   // Initialize sequential tasks
   const initializeSequentialTasks = () => {
     setSequentialTasks([
-      { name: 'nftBalance', status: 'pending', message: 'Waiting to load NFT balance...' },
-      { name: 'tokenBalance', status: 'pending', message: 'Waiting to load token balance...' },
-      { name: 'walletLabel', status: 'pending', message: 'Waiting to load wallet label...' },
-      { name: 'walletScore', status: 'pending', message: 'Waiting to load wallet score...' },
-      { name: 'walletMetrics', status: 'pending', message: 'Waiting to load wallet metrics...' },
-      { name: 'nftAnalytics', status: 'pending', message: 'Waiting to load NFT analytics...' },
-      { name: 'nftTraders', status: 'pending', message: 'Waiting to load NFT traders...' },
+      { name: "nftBalance", status: "pending", message: "Waiting to load NFT balance..." },
+      { name: "tokenBalance", status: "pending", message: "Waiting to load token balance..." },
+      { name: "walletLabel", status: "pending", message: "Waiting to load wallet label..." },
+      { name: "walletScore", status: "pending", message: "Waiting to load wallet score..." },
+      { name: "walletMetrics", status: "pending", message: "Waiting to load wallet metrics..." },
+      { name: "nftAnalytics", status: "pending", message: "Waiting to load NFT analytics..." },
+      { name: "nftTraders", status: "pending", message: "Waiting to load NFT traders..." },
     ])
   }
 
-  // Individual API fetch functions
+  // Individual API fetch functions (keeping the same logic but updating state)
   const fetchNftBalance = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('nft_balance', { wallet: walletInfo.address, blockchain: walletInfo.blockchain })
+    const cacheKey = getCacheKey("nft_balance", { wallet: walletInfo.address, blockchain: walletInfo.blockchain })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setNftBalance(cached)
-      updateSequentialTaskStatus('nftBalance', 'success', 'NFT balance loaded from cache')
+      updateSequentialTaskStatus("nftBalance", "success", "NFT balance loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('nftBalance', 'loading', 'Fetching NFT balance...')
-    updateLoadingState('nftBalance', true)
+    updateSequentialTaskStatus("nftBalance", "loading", "Fetching NFT balance...")
+    updateLoadingState("nftBalance", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/wallet/balance/nft', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/wallet/balance/nft", {
         params: {
           wallet: walletInfo.address,
           blockchain: walletInfo.blockchain,
-          time_range: 'all',
+          time_range: "all",
           offset: 0,
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setNftBalance(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.NFT_BALANCE)
-      updateSequentialTaskStatus('nftBalance', 'success', 'NFT balance loaded successfully')
+      updateSequentialTaskStatus("nftBalance", "success", "NFT balance loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching NFT balance:', err)
-      updateSequentialTaskStatus('nftBalance', 'error', 'Failed to fetch NFT balance')
+      console.error("Error fetching NFT balance:", err)
+      updateSequentialTaskStatus("nftBalance", "error", "Failed to fetch NFT balance")
       return false
     } finally {
-      updateLoadingState('nftBalance', false)
+      updateLoadingState("nftBalance", false)
     }
   }, [walletInfo, apiKey])
 
   const fetchTokenBalance = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('token_balance', { address: walletInfo.address, blockchain: walletInfo.blockchain })
+    const cacheKey = getCacheKey("token_balance", { address: walletInfo.address, blockchain: walletInfo.blockchain })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setTokenBalance(cached)
-      updateSequentialTaskStatus('tokenBalance', 'success', 'Token balance loaded from cache')
+      updateSequentialTaskStatus("tokenBalance", "success", "Token balance loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('tokenBalance', 'loading', 'Fetching token balance...')
-    updateLoadingState('tokenBalance', true)
+    updateSequentialTaskStatus("tokenBalance", "loading", "Fetching token balance...")
+    updateLoadingState("tokenBalance", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/wallet/balance/token', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/wallet/balance/token", {
         params: {
           address: walletInfo.address,
           blockchain: walletInfo.blockchain,
-          time_range: 'all',
+          time_range: "all",
           offset: 0,
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setTokenBalance(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.TOKEN_BALANCE)
-      updateSequentialTaskStatus('tokenBalance', 'success', 'Token balance loaded successfully')
+      updateSequentialTaskStatus("tokenBalance", "success", "Token balance loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching token balance:', err)
-      updateSequentialTaskStatus('tokenBalance', 'error', 'Failed to fetch token balance')
+      console.error("Error fetching token balance:", err)
+      updateSequentialTaskStatus("tokenBalance", "error", "Failed to fetch token balance")
       return false
     } finally {
-      updateLoadingState('tokenBalance', false)
+      updateLoadingState("tokenBalance", false)
     }
   }, [walletInfo, apiKey])
 
   const fetchWalletLabel = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('wallet_label', { address: walletInfo.address, blockchain: labelChain })
+    const cacheKey = getCacheKey("wallet_label", { address: walletInfo.address, blockchain: labelChain })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setWalletLabel(cached)
-      updateSequentialTaskStatus('walletLabel', 'success', 'Wallet label loaded from cache')
+      updateSequentialTaskStatus("walletLabel", "success", "Wallet label loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('walletLabel', 'loading', 'Fetching wallet label...')
-    updateLoadingState('walletLabel', true)
+    updateSequentialTaskStatus("walletLabel", "loading", "Fetching wallet label...")
+    updateLoadingState("walletLabel", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/wallet/label', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/wallet/label", {
         params: {
           address: walletInfo.address,
           blockchain: labelChain,
@@ -290,40 +320,40 @@ const BLOCKCHAIN_OPTIONS = [
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setWalletLabel(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.WALLET_LABEL)
-      updateSequentialTaskStatus('walletLabel', 'success', 'Wallet label loaded successfully')
+      updateSequentialTaskStatus("walletLabel", "success", "Wallet label loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching wallet label:', err)
-      updateSequentialTaskStatus('walletLabel', 'error', 'Failed to fetch wallet label')
+      console.error("Error fetching wallet label:", err)
+      updateSequentialTaskStatus("walletLabel", "error", "Failed to fetch wallet label")
       return false
     } finally {
-      updateLoadingState('walletLabel', false)
+      updateLoadingState("walletLabel", false)
     }
-  }, [walletInfo, apiKey])
+  }, [walletInfo, apiKey, labelChain])
 
   const fetchWalletScore = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('wallet_score', { wallet_address: walletInfo.address, time_range: timeRange })
+    const cacheKey = getCacheKey("wallet_score", { wallet_address: walletInfo.address, time_range: timeRange })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setWalletScore(cached)
-      updateSequentialTaskStatus('walletScore', 'success', 'Wallet score loaded from cache')
+      updateSequentialTaskStatus("walletScore", "success", "Wallet score loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('walletScore', 'loading', 'Fetching wallet score...')
-    updateLoadingState('walletScore', true)
+    updateSequentialTaskStatus("walletScore", "loading", "Fetching wallet score...")
+    updateLoadingState("walletScore", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/wallet/score', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/wallet/score", {
         params: {
           wallet_address: walletInfo.address,
           time_range: "all",
@@ -331,21 +361,21 @@ const BLOCKCHAIN_OPTIONS = [
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setWalletScore(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.WALLET_SCORE)
-      updateSequentialTaskStatus('walletScore', 'success', 'Wallet score loaded successfully')
+      updateSequentialTaskStatus("walletScore", "success", "Wallet score loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching wallet score:', err)
-      updateSequentialTaskStatus('walletScore', 'error', 'Failed to fetch wallet score')
+      console.error("Error fetching wallet score:", err)
+      updateSequentialTaskStatus("walletScore", "error", "Failed to fetch wallet score")
       return false
     } finally {
-      updateLoadingState('walletScore', false)
+      updateLoadingState("walletScore", false)
     }
   }, [walletInfo, apiKey, timeRange])
 
@@ -353,25 +383,29 @@ const BLOCKCHAIN_OPTIONS = [
     if (!walletInfo || !apiKey) return false
 
     // Check if blockchain is supported
-    const supportedBlockchains = ["linea", "polygon", "ethereum", "avalanche"];
+    const supportedBlockchains = ["linea", "polygon", "ethereum", "avalanche"]
     if (!supportedBlockchains.includes(walletInfo.blockchain.toLowerCase())) {
-      updateSequentialTaskStatus('walletMetrics', 'error', `Unsupported blockchain: ${walletInfo.blockchain}`)
+      updateSequentialTaskStatus("walletMetrics", "error", `Unsupported blockchain: ${walletInfo.blockchain}`)
       return false
     }
 
-    const cacheKey = getCacheKey('wallet_metrics', { wallet: walletInfo.address, blockchain: walletInfo.blockchain, time_range: timeRange })
+    const cacheKey = getCacheKey("wallet_metrics", {
+      wallet: walletInfo.address,
+      blockchain: walletInfo.blockchain,
+      time_range: timeRange,
+    })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setWalletMetrics(cached)
-      updateSequentialTaskStatus('walletMetrics', 'success', 'Wallet metrics loaded from cache')
+      updateSequentialTaskStatus("walletMetrics", "success", "Wallet metrics loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('walletMetrics', 'loading', 'Fetching wallet metrics...')
-    updateLoadingState('walletMetrics', true)
+    updateSequentialTaskStatus("walletMetrics", "loading", "Fetching wallet metrics...")
+    updateLoadingState("walletMetrics", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/wallet/metrics', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/wallet/metrics", {
         params: {
           blockchain: walletInfo.blockchain.toLowerCase(),
           wallet: walletInfo.address,
@@ -380,109 +414,117 @@ const BLOCKCHAIN_OPTIONS = [
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setWalletMetrics(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.WALLET_METRICS)
-      updateSequentialTaskStatus('walletMetrics', 'success', 'Wallet metrics loaded successfully')
+      updateSequentialTaskStatus("walletMetrics", "success", "Wallet metrics loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching wallet metrics:', err)
-      updateSequentialTaskStatus('walletMetrics', 'error', 'Failed to fetch wallet metrics')
+      console.error("Error fetching wallet metrics:", err)
+      updateSequentialTaskStatus("walletMetrics", "error", "Failed to fetch wallet metrics")
       return false
     } finally {
-      updateLoadingState('walletMetrics', false)
+      updateLoadingState("walletMetrics", false)
     }
   }, [walletInfo, apiKey, timeRange])
 
   const fetchNftAnalytics = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('nft_analytics', { wallet: walletInfo.address, blockchain: walletInfo.blockchain, time_range: timeRange })
+    const cacheKey = getCacheKey("nft_analytics", {
+      wallet: walletInfo.address,
+      blockchain: walletInfo.blockchain,
+      time_range: timeRange,
+    })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setNftAnalytics(cached)
-      updateSequentialTaskStatus('nftAnalytics', 'success', 'NFT analytics loaded from cache')
+      updateSequentialTaskStatus("nftAnalytics", "success", "NFT analytics loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('nftAnalytics', 'loading', 'Fetching NFT analytics...')
-    updateLoadingState('nftAnalytics', true)
+    updateSequentialTaskStatus("nftAnalytics", "loading", "Fetching NFT analytics...")
+    updateLoadingState("nftAnalytics", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/nft/wallet/analytics', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/nft/wallet/analytics", {
         params: {
           wallet: walletInfo.address,
           blockchain: walletInfo.blockchain,
           time_range: timeRange,
-          sort_by: 'volume',
-          sort_order: 'desc',
+          sort_by: "volume",
+          sort_order: "desc",
           offset: 0,
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setNftAnalytics(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.NFT_ANALYTICS)
-      updateSequentialTaskStatus('nftAnalytics', 'success', 'NFT analytics loaded successfully')
+      updateSequentialTaskStatus("nftAnalytics", "success", "NFT analytics loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching NFT analytics:', err)
-      updateSequentialTaskStatus('nftAnalytics', 'error', 'Failed to fetch NFT analytics')
+      console.error("Error fetching NFT analytics:", err)
+      updateSequentialTaskStatus("nftAnalytics", "error", "Failed to fetch NFT analytics")
       return false
     } finally {
-      updateLoadingState('nftAnalytics', false)
+      updateLoadingState("nftAnalytics", false)
     }
   }, [walletInfo, apiKey, timeRange])
 
   const fetchNftTraders = useCallback(async () => {
     if (!walletInfo || !apiKey) return false
 
-    const cacheKey = getCacheKey('nft_traders', { wallet: walletInfo.address, blockchain: walletInfo.blockchain, time_range: timeRange })
+    const cacheKey = getCacheKey("nft_traders", {
+      wallet: walletInfo.address,
+      blockchain: walletInfo.blockchain,
+      time_range: timeRange,
+    })
     const cached = getCachedData(cacheKey)
     if (cached) {
       setNftTraders(cached)
-      updateSequentialTaskStatus('nftTraders', 'success', 'NFT traders loaded from cache')
+      updateSequentialTaskStatus("nftTraders", "success", "NFT traders loaded from cache")
       return true
     }
 
-    updateSequentialTaskStatus('nftTraders', 'loading', 'Fetching NFT traders...')
-    updateLoadingState('nftTraders', true)
+    updateSequentialTaskStatus("nftTraders", "loading", "Fetching NFT traders...")
+    updateLoadingState("nftTraders", true)
 
     try {
-      const response = await axios.get('https://api.unleashnfts.com/api/v2/nft/wallet/traders', {
+      const response = await axios.get("https://api.unleashnfts.com/api/v2/nft/wallet/traders", {
         params: {
           wallet: walletInfo.address,
           blockchain: walletInfo.blockchain,
           time_range: timeRange,
-          sort_by: 'traders',
-          sort_order: 'desc',
+          sort_by: "traders",
+          sort_order: "desc",
           offset: 0,
           limit: 30,
         },
         headers: {
-          accept: 'application/json',
-          'x-api-key': apiKey,
+          accept: "application/json",
+          "x-api-key": apiKey,
         },
       })
 
       setNftTraders(response.data)
       setCachedData(cacheKey, response.data, CACHE_DURATION.NFT_TRADERS)
-      updateSequentialTaskStatus('nftTraders', 'success', 'NFT traders loaded successfully')
+      updateSequentialTaskStatus("nftTraders", "success", "NFT traders loaded successfully")
       return true
     } catch (err) {
-      console.error('Error fetching NFT traders:', err)
-      updateSequentialTaskStatus('nftTraders', 'error', 'Failed to fetch NFT traders')
+      console.error("Error fetching NFT traders:", err)
+      updateSequentialTaskStatus("nftTraders", "error", "Failed to fetch NFT traders")
       return false
     } finally {
-      updateLoadingState('nftTraders', false)
+      updateLoadingState("nftTraders", false)
     }
   }, [walletInfo, apiKey, timeRange])
 
@@ -494,31 +536,25 @@ const BLOCKCHAIN_OPTIONS = [
     initializeSequentialTasks()
 
     // Add delay between requests to prevent rate limiting
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
     try {
       await fetchNftBalance()
       await delay(500)
-
       await fetchTokenBalance()
       await delay(500)
-
       await fetchWalletLabel()
       await delay(500)
-
       await fetchWalletScore()
       await delay(500)
-
       await fetchWalletMetrics()
       await delay(500)
-
       await fetchNftAnalytics()
       await delay(500)
-
       await fetchNftTraders()
     } catch (error) {
-      console.error('Error in sequential wallet fetch:', error)
-      setError('Failed to complete wallet analysis')
+      console.error("Error in sequential wallet fetch:", error)
+      setError("Failed to complete wallet analysis")
     } finally {
       setIsSequentialLoading(false)
       // Clear tasks after 3 seconds if all completed
@@ -526,7 +562,17 @@ const BLOCKCHAIN_OPTIONS = [
         setSequentialTasks([])
       }, 3000)
     }
-  }, [walletInfo, apiKey, fetchNftBalance, fetchTokenBalance, fetchWalletLabel, fetchWalletScore, fetchWalletMetrics, fetchNftAnalytics, fetchNftTraders])
+  }, [
+    walletInfo,
+    apiKey,
+    fetchNftBalance,
+    fetchTokenBalance,
+    fetchWalletLabel,
+    fetchWalletScore,
+    fetchWalletMetrics,
+    fetchNftAnalytics,
+    fetchNftTraders,
+  ])
 
   // Extract wallet info when tab info changes
   useEffect(() => {
@@ -539,6 +585,50 @@ const BLOCKCHAIN_OPTIONS = [
     }
   }, [tabInfo])
 
+  // Helper functions
+  const formatCurrency = (value: number | string, currency = "USD") => {
+    const numValue = typeof value === "string" ? Number.parseFloat(value) : value
+    if (isNaN(numValue)) return "N/A"
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numValue)
+  }
+
+  const formatNumber = (value: number) => {
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + "M"
+    } else if (value >= 1000) {
+      return (value / 1000).toFixed(1) + "K"
+    }
+    return value.toString()
+  }
+
+  const getRiskColor = (riskCategory: number) => {
+    if (riskCategory <= 2) return "bg-green-100 text-green-800 border-4 border-green-600"
+    if (riskCategory <= 4) return "bg-yellow-100 text-yellow-800 border-4 border-yellow-600"
+    return "bg-red-100 text-red-800 border-4 border-red-600"
+  }
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600"
+    if (score >= 60) return "text-yellow-600"
+    if (score >= 40) return "text-orange-600"
+    return "text-red-600"
+  }
+
+  const getChangeColor = (change: number | null) => {
+    if (change === null) return "text-gray-500"
+    return change >= 0 ? "text-green-600" : "text-red-600"
+  }
+
+  const getChangeIcon = (change: number | null) => {
+    if (change === null) return null
+    return change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />
+  }
+
   // Loading indicator component
   const LoadingIndicator = ({ message }: { message: string }) => (
     <div className="flex items-center space-x-2 p-2 md:p-4 bg-blue-100 border-4 border-black">
@@ -550,13 +640,16 @@ const BLOCKCHAIN_OPTIONS = [
   // Sequential progress indicator
   const SequentialProgressIndicator = () => (
     <div className="bg-yellow-100 border-4 border-black p-3 md:p-4 mb-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <h3 className="font-black text-sm md:text-base mb-2 md:mb-3">Wallet Analysis Progress</h3>
+      <h3 className="font-black text-sm md:text-base mb-2 md:mb-3 flex items-center">
+        <Activity className="h-5 w-5 mr-2" />
+        WALLET ANALYSIS PROGRESS
+      </h3>
       <div className="space-y-2 md:space-y-3">
         {sequentialTasks.map((task, index) => (
           <div key={index} className="flex items-center space-x-2 md:space-x-3">
-            {task.status === 'loading' && <LoaderCircle className="h-4 w-4 md:h-5 md:w-5 animate-spin text-blue-600" />}
-            {task.status === 'success' && <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />}
-            {task.status === 'error' && <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />}
+            {task.status === "loading" && <LoaderCircle className="h-4 w-4 md:h-5 md:w-5 animate-spin text-blue-600" />}
+            {task.status === "success" && <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />}
+            {task.status === "error" && <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600" />}
             <span className="text-xs md:text-sm font-bold">{task.name}:</span>
             <span className="text-xs md:text-sm">{task.message}</span>
           </div>
@@ -565,452 +658,885 @@ const BLOCKCHAIN_OPTIONS = [
     </div>
   )
 
-  // Format currency value
-  const formatCurrency = (value: number | string, currency: string = 'USD') => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value
-    if (isNaN(numValue)) return 'N/A'
-    
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numValue)
+  // Pagination component
+  const PaginationControls = ({
+    currentPage,
+    totalItems,
+    itemsPerPage,
+    onPageChange,
+  }: {
+    currentPage: number
+    totalItems: number
+    itemsPerPage: number
+    onPageChange: (page: number) => void
+  }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage)
+    return (
+      <div className="flex flex-col gap-2 items-center justify-between mt-4 p-3 bg-gray-100 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="text-sm font-bold text-black">
+          Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
+          {totalItems} items
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-4 border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-black px-3 py-1 bg-white border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-4 border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
   }
 
-  // Render data card
-  const DataCard = ({ title, data, isLoading, bgColor = 'bg-white' }: { 
-    title: string, 
-    data: any, 
-    isLoading: boolean,
-    bgColor?: string 
-  }) => (
-    <Card className={`${bgColor} border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all min-w-0`}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm md:text-base font-black uppercase bg-orange-200 p-2 border-2 border-black inline-block text-center">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="min-w-0">
-        {isLoading ? (
-          <LoadingIndicator message={`Loading ${title.toLowerCase()}...`} />
-        ) : data ? (
-          <div className="space-y-2">
-            {/* Custom rendering based on data type */}
-            {title === 'DeFi Balance' && data.data && (
-              <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                  data.data.slice(0, 5).map((item: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 border-2 border-black text-xs">
-                      <p><strong>Token:</strong> {item.token_name || 'Unknown'}</p>
-                      <p><strong>Balance:</strong> {item.balance || '0'}</p>
-                      <p><strong>Value:</strong> {formatCurrency(item.usd_value || 0)}</p>
+  // Enhanced NFT Balance Component
+  const EnhancedNFTBalance = () => {
+    if (loadingStates.nftBalance) {
+      return <LoadingIndicator message="Loading NFT balance..." />
+    }
+
+    if (!nftBalance?.data || !Array.isArray(nftBalance.data) || nftBalance.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Wallet className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No NFTs found in this wallet</p>
+        </div>
+      )
+    }
+
+    const startIndex = (nftPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const paginatedNFTs = nftBalance.data.slice(startIndex, endIndex)
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginatedNFTs.map((nft: any, index: number) => (
+            <Card
+              key={index}
+              className="border-4 border-black bg-purple-50 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-purple-200 text-purple-800 border-2 border-black font-black">
+                      {nft.contract_type}
+                    </Badge>
+                    <Badge className="bg-blue-200 text-blue-800 border-2 border-black font-black">
+                      {nft.blockchain}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-gray-800 truncate">{nft.collection}</h4>
+                    <p className="text-xs font-bold text-gray-600">Token ID: {nft.token_id}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-500">QUANTITY</p>
+                      <p className="font-black text-lg text-purple-600">{nft.quantity}</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-600">No DeFi balance found</p>
-                )}
-              </div>
-            )}
-            
-            {title === 'NFT Balance' && data.data && (
-                <div className="space-y-2">
-                    {Array.isArray(data.data) && data.data.length > 0 ? (
-                    data.data.map((item: any, index: number) => (
-                        <div
-                        key={index}
-                        className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                        >
-                        <p><strong>Collection:</strong> {item.collection}</p>
-                        <p><strong>Token ID:</strong> {item.token_id}</p>
-                        <p><strong>Quantity:</strong> {item.quantity}</p>
-                        <p><strong>Contract Addr:</strong> <span className="break-all">{item.contract_address}</span></p>
-                        <p><strong>Contract Type:</strong> {item.contract_type}</p>
-                        <p><strong>Blockchain:</strong> {item.blockchain}</p>
-                        <p><strong>Chain ID:</strong> {item.chain_id}</p>
-                        {/* `wallet` is redundant (same for every row) but included for completeness */}
-                        <p><strong>Wallet:</strong> <span className="break-all">{item.wallet}</span></p>
-                        </div>
-                    ))
-                    ) : (
-                    <p className="text-sm text-gray-600">No NFTs found</p>
-                    )}
-                </div>
-            )}
-            
-            {title === 'Token Balance' && data.data && (
-            <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((item: any, index: number) => (
-                    <div
-                    key={index}
-                    className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                    <p><strong>Token Name:</strong> {item.token_name || 'Unknown'}</p>
-                    <p><strong>Symbol:</strong> {item.token_symbol}</p>
-                    <p><strong>Quantity:</strong> {item.quantity}</p>
-                    <p><strong>Decimals:</strong> {item.decimal}</p>
-                    <p>
-                        <strong>Token Address:</strong>{' '}
-                        <span className="break-all">{item.token_address}</span>
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-500">CHAIN ID</p>
+                      <p className="font-black text-lg text-blue-600">{nft.chain_id}</p>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t-4 border-purple-300">
+                    <p className="text-xs font-bold text-gray-500 mb-1">CONTRACT ADDRESS</p>
+                    <p className="text-xs font-mono bg-white p-2 border-2 border-black break-all">
+                      {nft.contract_address}
                     </p>
-                    <p><strong>Blockchain:</strong> {item.blockchain}</p>
-                    <p><strong>Chain ID:</strong> {item.chain_id}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <PaginationControls
+          currentPage={nftPage}
+          totalItems={nftBalance.data.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={setNftPage}
+        />
+      </div>
+    )
+  }
+
+  // Enhanced Token Balance Component
+  const EnhancedTokenBalance = () => {
+    if (loadingStates.tokenBalance) {
+      return <LoadingIndicator message="Loading token balance..." />
+    }
+
+    if (!tokenBalance?.data || !Array.isArray(tokenBalance.data) || tokenBalance.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Coins className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No tokens found in this wallet</p>
+        </div>
+      )
+    }
+
+    const startIndex = (tokenPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const paginatedTokens = tokenBalance.data.slice(startIndex, endIndex)
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {paginatedTokens.map((token: any, index: number) => (
+            <Card
+              key={index}
+              className="border-4 border-black bg-blue-50 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-blue-200 text-blue-800 border-2 border-black font-black">
+                      {token.token_symbol}
+                    </Badge>
+                    <Badge className="bg-green-200 text-green-800 border-2 border-black font-black">
+                      {token.blockchain}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-gray-800 truncate">{token.token_name || "Unknown Token"}</h4>
+                    <p className="text-xs font-bold text-gray-600">Decimals: {token.decimal}</p>
+                  </div>
+                  <div className="text-center bg-white p-3 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-xs font-bold text-gray-500">BALANCE</p>
+                    <p className="font-black text-xl text-blue-600">
+                      {formatNumber(Number.parseFloat(token.quantity))}
+                    </p>
+                    <p className="text-xs font-bold text-gray-600">{token.token_symbol}</p>
+                  </div>
+                  <div className="pt-2 border-t-4 border-blue-300">
+                    <p className="text-xs font-bold text-gray-500 mb-1">TOKEN ADDRESS</p>
+                    <p className="text-xs font-mono bg-white p-2 border-2 border-black break-all">
+                      {token.token_address}
+                    </p>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-600">
+                    <span>Chain ID: {token.chain_id}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <PaginationControls
+          currentPage={tokenPage}
+          totalItems={tokenBalance.data.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={setTokenPage}
+        />
+      </div>
+    )
+  }
+
+  // Enhanced Wallet Label Component
+  const EnhancedWalletLabel = () => {
+    if (loadingStates.walletLabel) {
+      return <LoadingIndicator message="Loading wallet labels..." />
+    }
+
+    if (!walletLabel?.data || !Array.isArray(walletLabel.data) || walletLabel.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No labels found for this wallet</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        {walletLabel.data.map((label: any, index: number) => {
+          const trueFlags = Object.entries(label)
+            .filter(([_, value]) => typeof value === "boolean" && value)
+            .map(([key]) => key.replace(/_/g, " "))
+
+          const nameFields = Object.entries(label)
+            .filter(
+              ([key, value]) =>
+                key.endsWith("_name") && typeof value === "string" && value.trim() !== "" && value !== "0",
+            )
+            .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`)
+
+          return (
+            <Card
+              key={index}
+              className={`border-4 border-black ${getRiskColor(label.risk_category)} hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-col md:flex-row">
+                    <Badge className="bg-gray-200 text-gray-800 border-2 border-black font-black">
+                      {label.blockchain} (Chain {label.chain_id})
+                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={`${getRiskColor(label.risk_category)} font-black`}>
+                        RISK: {label.risk_category}
+                      </Badge>
+                      <Badge className="bg-purple-200 text-purple-800 border-2 border-black font-black">
+                        DEPTH: {label.risk_depth}
+                      </Badge>
                     </div>
-                ))
-                ) : (
-                <p className="text-sm text-gray-600">No token balance found</p>
-                )}
-            </div>
-            )}
+                  </div>
 
-            {title === 'Wallet Label' && data.data && (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((item: any, idx: number) => {
-                    // ❶ Pick every boolean flag that is true
-                    // TRUE FLAGS
-                    const trueFlags = Object.entries(item)
-                    .filter(([_, value]) => typeof value === 'boolean' && value) // '_' signals “intentionally unused”
-                    .map(([key]) => key.replace(/_/g, ' '));
-
-                    // NAME FIELDS
-                    const nameFields = Object.entries(item)
-                    .filter(
-                    ([key, value]) =>
-                        key.endsWith('_name') &&
-                        typeof value === 'string' &&
-                        value.trim() !== '' &&
-                        value !== '0',
-                    )
-                    .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`);
-
-                    return (
-                    <div
-                        key={idx}
-                        className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                        <p>
-                        <strong>Blockchain:</strong> {item.blockchain} (chain {item.chain_id})
-                        </p>
-                        <p>
-                        <strong>Risk:</strong> category {item.risk_category} • depth{' '}
-                        {item.risk_depth}
-                        </p>
-                        {trueFlags.length > 0 && (
-                        <p>
-                            <strong>Flags:</strong>{' '}
-                            {trueFlags.join(', ').replace(/(^\w|\s\w)/g, (s) =>
-                            s.toUpperCase()
-                            )}
-                        </p>
-                        )}
-                        {nameFields.length > 0 && (
-                        <p>
-                            <strong>Names:</strong> {nameFields.join(', ')}
-                        </p>
-                        )}
-                        {trueFlags.length === 0 && nameFields.length === 0 && (
-                        <p>No positive labels recorded.</p>
-                        )}
+                  {trueFlags.length > 0 && (
+                    <div>
+                      <p className="text-sm font-black text-gray-700 mb-2">ACTIVE FLAGS:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {trueFlags.map((flag, idx) => (
+                          <Badge key={idx} className="bg-yellow-200 text-yellow-800 border-2 border-black font-black">
+                            {flag.replace(/(^\w|\s\w)/g, (s) => s.toUpperCase())}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    );
-                })
-                ) : (
-                <p className="text-sm text-gray-600">No labels found</p>
-                )}
-            </div>
-            )}
+                  )}
 
-            {title === 'NFT Profile' && data.data && (
+                  {nameFields.length > 0 && (
+                    <div>
+                      <p className="text-sm font-black text-gray-700 mb-2">NAMED ENTITIES:</p>
+                      <div className="space-y-1">
+                        {nameFields.map((field, idx) => (
+                          <p key={idx} className="text-sm bg-white p-2 border-2 border-black font-bold">
+                            {field}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {trueFlags.length === 0 && nameFields.length === 0 && (
+                    <p className="text-sm text-gray-500 font-bold italic">No positive labels recorded.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // Enhanced Wallet Score Component with Charts
+  const EnhancedWalletScore = () => {
+    if (loadingStates.walletScore) {
+      return <LoadingIndicator message="Loading wallet score..." />
+    }
+
+    if (!walletScore?.data || !Array.isArray(walletScore.data) || walletScore.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No wallet score data available</p>
+        </div>
+      )
+    }
+
+    const scoreData = walletScore.data[0]
+    const overallScore = scoreData.wallet_score || 0
+
+    // Prepare data for charts
+    const scoreBreakdown = [
+      { name: "Anomalous Pattern", value: scoreData.anomalous_pattern_score || 0 },
+      { name: "Associated Token", value: scoreData.associated_token_score || 0 },
+      { name: "Centralized Interaction", value: scoreData.centralized_interaction_score || 0 },
+      { name: "Frequency", value: scoreData.frequency_score || 0 },
+      { name: "Risk Interaction", value: scoreData.risk_interaction_score || 0 },
+      { name: "Smart Contract", value: scoreData.smart_contract_interaction_score || 0 },
+      { name: "Staking/Governance", value: scoreData.staking_governance_interaction_score || 0 },
+      { name: "Volume", value: scoreData.volume_score || 0 },
+      { name: "Wallet Age", value: scoreData.wallet_age_score || 0 },
+    ]
+
+    const radialData = [
+      {
+        name: "Score",
+        value: overallScore,
+        fill: overallScore >= 80 ? "#10b981" : overallScore >= 60 ? "#f59e0b" : "#ef4444",
+      },
+    ]
+
+    return (
+      <div className="space-y-6">
+        {/* Overall Score Display */}
+        <Card className="border-4 border-black bg-indigo-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-black text-gray-800 mb-2 uppercase">OVERALL WALLET SCORE</h3>
+              <div className="flex items-center justify-center space-x-4">
+                <div className="text-center">
+                  <div className={`text-4xl font-black ${getScoreColor(overallScore)}`}>{overallScore.toFixed(1)}</div>
+                  <Badge
+                    className={`mt-2 font-black border-2 border-black ${
+                      scoreData.classification === "low_risk"
+                        ? "bg-green-200 text-green-800"
+                        : scoreData.classification === "medium_risk"
+                          ? "bg-yellow-200 text-yellow-800"
+                          : "bg-red-200 text-red-800"
+                    }`}
+                  >
+                    {scoreData.classification?.replace("_", " ").toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="w-32 h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={radialData}>
+                      <RadialBar dataKey="value" cornerRadius={10} fill={radialData[0].fill} />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Score Breakdown Chart */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardHeader>
+            <CardTitle className="text-lg font-black flex items-center uppercase p-4">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              SCORE BREAKDOWN
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 bg-gray-50 border-2 border-black p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={scoreBreakdown} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} stroke="#000" strokeWidth={2} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Risk Information */}
+        {(scoreData.blockchain_with_illicit || scoreData.blockchain_without_illicit) && (
+          <Card className="border-4 border-black bg-orange-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4">
+              <h4 className="font-black text-gray-800 mb-3 uppercase">BLOCKCHAIN RISK ASSESSMENT</h4>
               <div className="space-y-2">
-                {data.data[0] && (
-                  <div className="p-2 bg-gray-50 border-2 border-black text-xs">
-                    <p><strong>Total Volume:</strong> {formatCurrency(data.data[0].total_volume || 0)}</p>
-                    <p><strong>Total Sales:</strong> {data.data[0].total_sales || 0}</p>
-                    <p><strong>Total Purchases:</strong> {data.data[0].total_purchases || 0}</p>
-                    <p><strong>Unique Collections:</strong> {data.data[0].unique_collections || 0}</p>
+                {scoreData.blockchain_with_illicit && (
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-red-200 text-red-800 border-2 border-black font-black">HIGH RISK</Badge>
+                    <span className="text-sm font-bold">{scoreData.blockchain_with_illicit}</span>
+                  </div>
+                )}
+                {scoreData.blockchain_without_illicit && (
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-green-200 text-green-800 border-2 border-black font-black">CLEAN</Badge>
+                    <span className="text-sm font-bold">{scoreData.blockchain_without_illicit}</span>
                   </div>
                 )}
               </div>
-            )}
-
-            {title === 'Wallet Score' && data.data && (
-            <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((ws: any, idx: number) => (
-                    <div
-                    key={idx}
-                    className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                    <p>
-                        <strong>Overall Score:</strong>{' '}
-                        {ws.wallet_score?.toFixed?.(2) ?? 'N/A'} &nbsp;
-                        <span className="italic">({ws.classification})</span>
-                    </p>
-
-                    <Separator className="my-1 bg-black" />
-
-                    <p><strong>Anomalous Pattern:</strong> {ws.anomalous_pattern_score}</p>
-                    <p><strong>Associated Token:</strong> {ws.associated_token_score}</p>
-                    <p><strong>Centralized Interaction:</strong> {ws.centralized_interaction_score}</p>
-                    <p><strong>Frequency:</strong> {ws.frequency_score}</p>
-                    <p><strong>Risk Interaction:</strong> {ws.risk_interaction_score}</p>
-                    <p><strong>Smart-Contract Interaction:</strong> {ws.smart_contract_interaction_score}</p>
-                    <p><strong>Staking/Governance:</strong> {ws.staking_governance_interaction_score}</p>
-                    <p><strong>Volume:</strong> {ws.volume_score}</p>
-                    <p><strong>Wallet Age:</strong> {ws.wallet_age_score}</p>
-
-                    {ws.blockchain_with_illicit && (
-                        <p className="text-red-600">
-                        <strong>Illicit chains:</strong> {ws.blockchain_with_illicit}
-                        </p>
-                    )}
-                    {ws.blockchain_without_illicit && (
-                        <p>
-                        <strong>Clean chains:</strong> {ws.blockchain_without_illicit}
-                        </p>
-                    )}
-                    </div>
-                ))
-                ) : (
-                <p className="text-sm text-gray-600">No wallet score data</p>
-                )}
-            </div>
-            )}
-
-            {title === 'Wallet Metrics' && data.data && (
-            <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((m: any, idx: number) => (
-                    <div
-                    key={idx}
-                    className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                    <p><strong>Wallet Age:</strong> {m.wallet_age} days</p>
-                    <p><strong>Active Days:</strong> {m.wallet_active_days}</p>
-
-                    <Separator className="my-1 bg-black" />
-
-                    <p><strong>Total Txns:</strong> {m.total_txn}</p>
-                    <p className="pl-3">↳ In / Out Txns: {m.in_txn} / {m.out_txn}</p>
-
-                    <p><strong>Unique Inflow Addresses:</strong> {m.inflow_addresses}</p>
-                    <p><strong>Unique Outflow Addresses:</strong> {m.outflow_addresses}</p>
-
-                    <Separator className="my-1 bg-black" />
-
-                    <p><strong>Volume (ETH / USD):</strong></p>
-                    <p className="pl-3">
-                        Inflow&nbsp;• {m.inflow_amount_eth.toFixed(4)} ETH / 
-                        {formatCurrency(m.inflow_amount_usd)}
-                    </p>
-                    <p className="pl-3">
-                        Outflow • {m.outflow_amount_eth.toFixed(4)} ETH / 
-                        {formatCurrency(m.outflow_amount_usd)}
-                    </p>
-                    <p className="pl-3">
-                        Total&nbsp;&nbsp;&nbsp;• {m.volume_eth.toFixed(4)} ETH / 
-                        {formatCurrency(m.volume_usd)}
-                    </p>
-
-                    <Separator className="my-1 bg-black" />
-
-                    <p><strong>Current Balance:</strong> {m.balance_eth.toFixed(4)} ETH / {formatCurrency(m.balance_usd)}</p>
-                    <p><strong>Distinct Tokens Held:</strong> {m.token_cnt}</p>
-
-                    <Separator className="my-1 bg-black" />
-
-                    <p className="text-red-600">
-                        Illicit Vol&nbsp;{m.illicit_volume} • Mixer Vol {m.mixer_volume} • Sanction Vol {m.sanction_volume}
-                    </p>
-
-                    <p><em>First active:</em> {new Date(m.first_active_day).toLocaleDateString()}</p>
-                    <p><em>Last active:</em> {new Date(m.last_active_day).toLocaleDateString()}</p>
-                    </div>
-                ))
-                ) : (
-                <p className="text-sm text-gray-600">No wallet metrics data</p>
-                )}
-            </div>
-            )}
-
-            {title === 'NFT Analytics' && data.data && (
-            <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((a: any, idx: number) => {
-                    // helper to style % change
-                    const pct = (val: number | null) =>
-                    val === null
-                        ? '—'
-                        : `${(val * 100).toFixed(1)}%`;
-
-                    const pctClass = (val: number | null) =>
-                    val === null
-                        ? ''
-                        : val >= 0
-                        ? 'text-green-600'
-                        : 'text-red-600';
-
-                    return (
-                    <div
-                        key={idx}
-                        className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                        <p>
-                        <strong>Blockchain:</strong> {a.blockchain} (chain {a.chain_id})
-                        </p>
-
-                        <Separator className="my-1 bg-black" />
-
-                        <p>
-                        <strong>Total Volume:</strong>{' '}
-                        {formatCurrency(a.volume_eth ?? a.volume, 'USD')} &nbsp;
-                        <span className={pctClass(a.volume_change)}>
-                            ({pct(a.volume_change)})
-                        </span>
-                        </p>
-
-                        <p className="pl-3">
-                        Buy&nbsp;• {formatCurrency(a.buy_volume, 'USD')}
-                        </p>
-                        <p className="pl-3">
-                        Sell&nbsp;• {formatCurrency(a.sell_volume, 'USD')}
-                        </p>
-
-                        <Separator className="my-1 bg-black" />
-
-                        <p>
-                        <strong>NFTs Bought:</strong> {a.nft_bought}{' '}
-                        <span className={pctClass(a.nft_bought_change)}>
-                            ({pct(a.nft_bought_change)})
-                        </span>
-                        </p>
-                        <p>
-                        <strong>NFTs Sold:</strong> {a.nft_sold}{' '}
-                        <span className={pctClass(a.nft_sold_change)}>
-                            ({pct(a.nft_sold_change)})
-                        </span>
-                        </p>
-                        <p>
-                        <strong>Transfers:</strong> {a.nft_transfer}{' '}
-                        <span className={pctClass(a.nft_transfer_change)}>
-                            ({pct(a.nft_transfer_change)})
-                        </span>
-                        </p>
-
-                        {a.minted_value !== 0 && (
-                        <p>
-                            <strong>Minted Value:</strong>{' '}
-                            {formatCurrency(a.minted_value, 'USD')}{' '}
-                            <span className={pctClass(a.minted_value_change)}>
-                            ({pct(a.minted_value_change)})
-                            </span>
-                        </p>
-                        )}
-
-                        <Separator className="my-1 bg-black" />
-
-                        <p>
-                        <strong>Sales Count:</strong> {a.sales}{' '}
-                        <span className={pctClass(a.sales_change)}>
-                            ({pct(a.sales_change)})
-                        </span>
-                        </p>
-                        <p>
-                        <strong>Transactions:</strong> {a.transactions}{' '}
-                        <span className={pctClass(a.transactions_change)}>
-                            ({pct(a.transactions_change)})
-                        </span>
-                        </p>
-
-                        <p className="text-gray-600">
-                        <em>Updated:</em>{' '}
-                        {new Date(a.updated_at).toLocaleString()}
-                        </p>
-                    </div>
-                    );
-                })
-                ) : (
-                <p className="text-sm text-gray-600">No NFT analytics data</p>
-                )}
-            </div>
-            )}
-
-            {title === 'NFT Traders' && data.data && (
-            <div className="space-y-2">
-                {Array.isArray(data.data) && data.data.length > 0 ? (
-                data.data.map((t: any, idx: number) => {
-                    // helper: pct string + colour
-                    const pct = (v: number | null) =>
-                    v === null ? '—' : `${(v * 100).toFixed(1)}%`;
-                    const pctCls = (v: number | null) =>
-                    v === null
-                        ? ''
-                        : v >= 0
-                        ? 'text-green-600'
-                        : 'text-red-600';
-
-                    return (
-                    <div
-                        key={idx}
-                        className="p-3 bg-gray-50 border-2 border-black text-xs space-y-1"
-                    >
-                        <p>
-                        <strong>Blockchain:</strong> {t.blockchain} (chain {t.chain_id})
-                        </p>
-
-                        <Separator className="my-1 bg-black" />
-
-                        <p>
-                        <strong>Total Traders:</strong> {t.traders}{' '}
-                        <span className={pctCls(t.traders_change)}>
-                            ({pct(t.traders_change)})
-                        </span>
-                        </p>
-                        <p>
-                        <strong>Buyers:</strong> {t.traders_buyers}{' '}
-                        <span className={pctCls(t.traders_buyers_change)}>
-                            ({pct(t.traders_buyers_change)})
-                        </span>
-                        </p>
-                        <p>
-                        <strong>Sellers:</strong> {t.traders_sellers}{' '}
-                        <span className={pctCls(t.traders_sellers_change)}>
-                            ({pct(t.traders_sellers_change)})
-                        </span>
-                        </p>
-
-                        <p className="text-gray-600">
-                        <em>Updated:</em>{' '}
-                        {new Date(t.updated_at).toLocaleString()}
-                        </p>
-                    </div>
-                    );
-                })
-                ) : (
-                <p className="text-sm text-gray-600">No trader data</p>
-                )}
-            </div>
-            )}
-
-          </div>
-        ) : (
-          <p className="text-sm text-gray-600">No data available</p>
+            </CardContent>
+          </Card>
         )}
-      </CardContent>
+      </div>
+    )
+  }
+
+  // Enhanced Wallet Metrics Component
+  const EnhancedWalletMetrics = () => {
+    if (loadingStates.walletMetrics) {
+      return <LoadingIndicator message="Loading wallet metrics..." />
+    }
+
+    if (!walletMetrics?.data || !Array.isArray(walletMetrics.data) || walletMetrics.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No wallet metrics data available</p>
+        </div>
+      )
+    }
+
+    const metrics = walletMetrics.data[0]
+
+    // Prepare data for charts
+    const volumeData = [
+      { name: "Inflow", eth: metrics.inflow_amount_eth, usd: metrics.inflow_amount_usd },
+      { name: "Outflow", eth: metrics.outflow_amount_eth, usd: metrics.outflow_amount_usd },
+    ]
+
+    const transactionData = [
+      { name: "Incoming", value: metrics.in_txn },
+      { name: "Outgoing", value: metrics.out_txn },
+    ]
+
+    const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"]
+
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-4 border-black bg-blue-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-black text-blue-600">{metrics.wallet_age}</div>
+              <div className="text-sm font-bold text-gray-600 uppercase">Days Old</div>
+            </CardContent>
+          </Card>
+          <Card className="border-4 border-black bg-green-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-black text-green-600">{metrics.wallet_active_days}</div>
+              <div className="text-sm font-bold text-gray-600 uppercase">Active Days</div>
+            </CardContent>
+          </Card>
+          <Card className="border-4 border-black bg-purple-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-black text-purple-600">{formatNumber(metrics.total_txn)}</div>
+              <div className="text-sm font-bold text-gray-600 uppercase">Total Transactions</div>
+            </CardContent>
+          </Card>
+          <Card className="border-4 border-black bg-orange-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-black text-orange-600">{metrics.token_cnt}</div>
+              <div className="text-sm font-bold text-gray-600 uppercase">Unique Tokens</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Volume Chart */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardHeader>
+            <CardTitle className="text-lg p-4 font-black flex items-center uppercase">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              VOLUME ANALYSIS (ETH)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gray-50 border-2 border-black p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={volumeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [typeof value === "number" ? value.toFixed(4) : value, "ETH"]} />
+                  <Bar dataKey="eth" fill="#6366f1" radius={[4, 4, 0, 0]} stroke="#000" strokeWidth={2} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transaction Distribution */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardHeader>
+            <CardTitle className="text-lg font-black flex items-center uppercase p-4">
+              <Activity className="h-5 w-5 mr-2" />
+              TRANSACTION DISTRIBUTION
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gray-50 border-2 border-black p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={transactionData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                    stroke="#000"
+                    strokeWidth={2}
+                  >
+                    {transactionData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Detailed Metrics */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
+          <CardHeader>
+            <CardTitle className="text-lg font-black uppercase">DETAILED METRICS</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-black text-gray-700 mb-2 uppercase">Current Balance</h4>
+                  <div className="bg-green-100 p-3 border-4 border-green-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-lg font-black text-green-600">{metrics.balance_eth.toFixed(4)} ETH</p>
+                    <p className="text-sm font-bold text-gray-600">{formatCurrency(metrics.balance_usd)}</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-black text-gray-700 mb-2 uppercase">Network Activity</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-bold text-gray-600">Inflow Addresses:</span>
+                      <span className="font-black">{metrics.inflow_addresses}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-bold text-gray-600">Outflow Addresses:</span>
+                      <span className="font-black">{metrics.outflow_addresses}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-black text-gray-700 mb-2 uppercase">Activity Timeline</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-bold text-gray-600">First Active:</span>
+                      <span className="font-black">{new Date(metrics.first_active_day).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm font-bold text-gray-600">Last Active:</span>
+                      <span className="font-black">{new Date(metrics.last_active_day).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+                {(metrics.illicit_volume > 0 || metrics.mixer_volume > 0 || metrics.sanction_volume > 0) && (
+                  <div>
+                    <h4 className="font-black text-red-700 mb-2 uppercase">⚠️ Risk Indicators</h4>
+                    <div className="bg-red-100 p-3 border-4 border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-bold text-red-600">Illicit Volume:</span>
+                        <span className="font-black text-red-700">{metrics.illicit_volume}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-bold text-red-600">Mixer Volume:</span>
+                        <span className="font-black text-red-700">{metrics.mixer_volume}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-bold text-red-600">Sanction Volume:</span>
+                        <span className="font-black text-red-700">{metrics.sanction_volume}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Enhanced NFT Analytics Component
+  const EnhancedNFTAnalytics = () => {
+    if (loadingStates.nftAnalytics) {
+      return <LoadingIndicator message="Loading NFT analytics..." />
+    }
+
+    if (!nftAnalytics?.data || !Array.isArray(nftAnalytics.data) || nftAnalytics.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No NFT analytics data available</p>
+        </div>
+      )
+    }
+
+    const analytics = nftAnalytics.data[0]
+
+    // Prepare data for charts
+    const volumeBreakdown = [
+      { name: "Buy Volume", value: analytics.buy_volume || 0, fill: "#10b981" },
+      { name: "Sell Volume", value: analytics.sell_volume || 0, fill: "#ef4444" },
+    ]
+
+    const activityData = [
+      { name: "NFTs Bought", value: analytics.nft_bought || 0, change: analytics.nft_bought_change },
+      { name: "NFTs Sold", value: analytics.nft_sold || 0, change: analytics.nft_sold_change },
+      { name: "Transfers", value: analytics.nft_transfer || 0, change: analytics.nft_transfer_change },
+      { name: "Sales", value: analytics.sales || 0, change: analytics.sales_change },
+      { name: "Transactions", value: analytics.transactions || 0, change: analytics.transactions_change },
+    ]
+
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="border-4 border-black bg-teal-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4">
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div>
+                  <div className="text-2xl font-black text-teal-600">
+                    {formatCurrency(analytics.volume_eth || analytics.volume || 0)}
+                  </div>
+                  <div className="text-sm font-bold text-gray-600 uppercase">Total Volume</div>
+                </div>
+                <div className={`flex items-center ${getChangeColor(analytics.volume_change)}`}>
+                  {getChangeIcon(analytics.volume_change)}
+                  <span className="text-sm font-black ml-1">
+                    {analytics.volume_change ? `${(analytics.volume_change * 100).toFixed(1)}%` : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-4 border-black bg-green-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-black text-green-600">{analytics.nft_bought || 0}</div>
+                  <div className="text-sm font-bold text-gray-600 uppercase">NFTs Bought</div>
+                </div>
+                <div className={`flex items-center ${getChangeColor(analytics.nft_bought_change)}`}>
+                  {getChangeIcon(analytics.nft_bought_change)}
+                  <span className="text-sm font-black ml-1">
+                    {analytics.nft_bought_change ? `${(analytics.nft_bought_change * 100).toFixed(1)}%` : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-4 border-black bg-red-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-black text-red-600">{analytics.nft_sold || 0}</div>
+                  <div className="text-sm font-bold text-gray-600 uppercase">NFTs Sold</div>
+                </div>
+                <div className={`flex items-center ${getChangeColor(analytics.nft_sold_change)}`}>
+                  {getChangeIcon(analytics.nft_sold_change)}
+                  <span className="text-sm font-black ml-1">
+                    {analytics.nft_sold_change ? `${(analytics.nft_sold_change * 100).toFixed(1)}%` : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Volume Breakdown Chart */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardHeader>
+            <CardTitle className="text-lg font-black flex items-center uppercase p-4">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              VOLUME BREAKDOWN
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gray-50 border-2 border-black p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={volumeBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
+                    stroke="#000"
+                    strokeWidth={2}
+                  >
+                    {volumeBreakdown.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Activity Metrics */}
+        <Card className="border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardHeader>
+            <CardTitle className="text-lg font-black flex items-center uppercase p-4">
+              <Activity className="h-5 w-5 mr-2" />
+              ACTIVITY METRICS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activityData.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col md:flex-row items-center justify-between p-3 bg-gray-100 border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="text-lg font-black text-gray-800">{item.value}</div>
+                    <div className="text-sm font-bold text-gray-600 uppercase">{item.name}</div>
+                  </div>
+                  <div className={`flex items-center ${getChangeColor(item.change)}`}>
+                    {getChangeIcon(item.change)}
+                    <span className="text-sm font-black ml-1">
+                      {item.change ? `${(item.change * 100).toFixed(1)}%` : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Minted Value */}
+        {analytics.minted_value !== 0 && (
+          <Card className="border-4 border-black bg-purple-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-black text-gray-700 mb-1 uppercase">MINTED VALUE</h4>
+                  <div className="text-2xl font-black text-purple-600">{formatCurrency(analytics.minted_value)}</div>
+                </div>
+                <div className={`flex items-center ${getChangeColor(analytics.minted_value_change)}`}>
+                  {getChangeIcon(analytics.minted_value_change)}
+                  <span className="text-sm font-black ml-1">
+                    {analytics.minted_value_change ? `${(analytics.minted_value_change * 100).toFixed(1)}%` : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Blockchain Info */}
+        <Card className="border-4 border-black bg-blue-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-black text-gray-700 mb-1 uppercase">BLOCKCHAIN</h4>
+                <Badge className="bg-blue-200 text-blue-800 border-2 border-black font-black">
+                  {analytics.blockchain} (Chain {analytics.chain_id})
+                </Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold text-gray-500 uppercase">Last Updated</p>
+                <p className="text-sm font-black">{new Date(analytics.updated_at).toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Enhanced NFT Traders Component
+  const EnhancedNFTTraders = () => {
+    if (loadingStates.nftTraders) {
+      return <LoadingIndicator message="Loading NFT traders..." />
+    }
+
+    if (!nftTraders?.data || !Array.isArray(nftTraders.data) || nftTraders.data.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-bold">No NFT traders data available</p>
+        </div>
+      )
+    }
+
+    const traders = nftTraders.data[0]
+
+    // Prepare data for charts
+    const traderMetrics = [
+      { name: "Total Traders", value: traders.traders || 0, change: traders.traders_change },
+      { name: "Buyers", value: traders.traders_buyers || 0, change: traders.traders_buyers_change },
+      { name: "Sellers", value: traders.traders_sellers || 0, change: traders.traders_sellers_change },
+    ]
+
+    return (
+      <div className="space-y-6">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {traderMetrics.map((metric, index) => (
+            <Card key={index} className="border-4 border-black bg-cyan-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-black text-cyan-600">{metric.value}</div>
+                    <div className="text-sm font-bold text-gray-600 uppercase">{metric.name}</div>
+                  </div>
+                  <div className={`flex items-center ${getChangeColor(metric.change)}`}>
+                    {getChangeIcon(metric.change)}
+                    <span className="text-sm font-black ml-1">
+                      {metric.change ? `${(metric.change * 100).toFixed(1)}%` : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Blockchain Info */}
+        <Card className="border-4 border-black bg-blue-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-black text-gray-700 mb-1 uppercase">BLOCKCHAIN</h4>
+                <Badge className="bg-blue-200 text-blue-800 border-2 border-black font-black">
+                  {traders.blockchain} (Chain {traders.chain_id})
+                </Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold text-gray-500 uppercase">Last Updated</p>
+                <p className="text-sm font-black">{new Date(traders.updated_at).toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Enhanced Data Card Component
+  const EnhancedDataCard = ({
+    title,
+    icon,
+    bgColor = "bg-white",
+    children,
+  }: {
+    title: string
+    icon: React.ReactNode
+    bgColor?: string
+    children: React.ReactNode
+  }) => (
+    <Card
+      className={`${bgColor} border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all`}
+    >
+      <CardHeader className="pb-0">
+        <CardTitle className="text-lg font-black flex items-center bg-orange-200 p-3 border-2 border-black uppercase">
+          {icon}
+          <span className="ml-2">{title}</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 p-4">{children}</CardContent>
     </Card>
   )
 
   return (
     <div className="space-y-4 min-w-0 max-w-full">
       {error && (
-        <div className="p-3 md:p-4 bg-red-100 border-4 border-black text-black font-bold mb-4 text-sm md:text-base">
+        <div className="p-3 md:p-4 bg-red-100 border-4 border-black text-black font-bold mb-4 text-sm md:text-base shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-2 text-red-600 hover:text-red-800"
-          >
+          <button onClick={() => setError(null)} className="ml-2 text-red-600 hover:text-red-800 font-black">
             ✕
           </button>
         </div>
@@ -1020,32 +1546,28 @@ const BLOCKCHAIN_OPTIONS = [
       {(isSequentialLoading || sequentialTasks.length > 0) && <SequentialProgressIndicator />}
 
       <div className="space-y-3 md:space-y-4 min-w-0">
-        <Separator className="bg-black"/>
-        
+        <Separator className="bg-black" />
+
         {isSidepanel && (
-          <div className="bg-blue-100 flex flex-col gap-4 p-3 border-4 border-black min-w-0">
+          <div className="bg-blue-100 flex flex-col gap-4 p-3 border-4 border-black min-w-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between min-w-0 gap-2">
               <div className="min-w-0 flex-1">
-                <p className="text-xs md:text-sm font-bold truncate">
-                  Current Page: {tabInfo?.title || 'Loading...'}
-                </p>
-                <p className="text-xs text-gray-600 truncate min-w-0">
-                  {tabInfo?.url || ''}
-                </p>
+                <p className="text-xs md:text-sm font-bold truncate">Current Page: {tabInfo?.title || "Loading..."}</p>
+                <p className="text-xs text-gray-600 truncate min-w-0">{tabInfo?.url || ""}</p>
               </div>
               <Button
                 onClick={refreshTabInfo}
                 disabled={tabLoading}
                 size="sm"
                 variant="outline"
-                className="border-2 rounded-none border-black flex-shrink-0"
+                className="border-4 border-black flex-shrink-0 bg-white hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
-                <RefreshCw className={`h-4 w-4 ${tabLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${tabLoading ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
         )}
-        
+
         <button
           onClick={() => {
             if (isSidepanel && tabInfo?.url) {
@@ -1054,19 +1576,19 @@ const BLOCKCHAIN_OPTIONS = [
                 setWalletInfo(extractedWallet)
                 setError(null)
               } else {
-                setError('Unable to extract wallet address. Please make sure you are on an OpenSea wallet page.')
+                setError("Unable to extract wallet address. Please make sure you are on an OpenSea wallet page.")
                 setWalletInfo(null)
               }
             } else {
-              if (typeof chrome !== 'undefined' && chrome.runtime) {
-                chrome.runtime.sendMessage({ type: 'GET_TAB_INFO' }, (response: any) => {
+              if (typeof chrome !== "undefined" && chrome.runtime) {
+                chrome.runtime.sendMessage({ type: "GET_TAB_INFO" }, (response: any) => {
                   if (response?.url) {
                     const extractedWallet = extractWalletFromUrl(response.url)
                     if (extractedWallet) {
                       setWalletInfo(extractedWallet)
                       setError(null)
                     } else {
-                      setError('Unable to extract wallet address. Please make sure you are on an OpenSea wallet page.')
+                      setError("Unable to extract wallet address. Please make sure you are on an OpenSea wallet page.")
                       setWalletInfo(null)
                     }
                   }
@@ -1076,12 +1598,12 @@ const BLOCKCHAIN_OPTIONS = [
           }}
           className="w-full bg-blue-200 hover:bg-blue-300 text-black font-bold py-2 px-3 md:px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base min-w-0 break-words"
         >
-          {isSidepanel ? 'Extract Wallet from Current Page' : 'Extract Wallet Address'}
+          {isSidepanel ? "Extract Wallet from Current Page" : "Extract Wallet Address"}
         </button>
-        
+
         {walletInfo && (
           <div className="space-y-3 md:space-y-4 min-w-0">
-            <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black min-w-0">
+            <div className="space-y-2 bg-yellow-100 p-3 md:p-4 border-4 border-black min-w-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <p className="text-xs md:text-sm font-bold min-w-0">
                 Wallet Address: <span className="text-blue-600 break-all font-mono text-xs">{walletInfo.address}</span>
               </p>
@@ -1090,25 +1612,25 @@ const BLOCKCHAIN_OPTIONS = [
               </p>
             </div>
 
-            <Separator className="bg-black"/>
+            <Separator className="bg-black" />
 
             <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs font-bold">Label on:</span>
-            <select
+              <span className="text-xs font-bold">Label on:</span>
+              <select
                 value={labelChain}
                 onChange={(e) => setLabelChain(e.target.value)}
-                className="border-2 border-black text-xs p-1 bg-white"
-            >
+                className="border-4 border-black text-xs p-1 bg-white font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              >
                 {BLOCKCHAIN_OPTIONS.map((opt) => (
-                <option value={opt} key={opt}>
-                    {opt}
-                </option>
+                  <option value={opt} key={opt}>
+                    {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                  </option>
                 ))}
-            </select>
+              </select>
             </div>
 
-            <Separator className="bg-black"/>
-            
+            <Separator className="bg-black" />
+
             <button
               onClick={sequentialFetchAllWalletData}
               disabled={isSequentialLoading}
@@ -1120,60 +1642,39 @@ const BLOCKCHAIN_OPTIONS = [
                   <span className="text-xs md:text-sm truncate">Analyzing Wallet...</span>
                 </div>
               ) : (
-                'Analyze Wallet Address'
+                "Analyze Wallet Address"
               )}
             </button>
 
-            {/* Data Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">              
-              <DataCard 
-                title="NFT Balance" 
-                data={nftBalance} 
-                isLoading={loadingStates.nftBalance}
-                bgColor="bg-purple-50"
-              />
-              
-              <DataCard 
-                title="Token Balance" 
-                data={tokenBalance} 
-                isLoading={loadingStates.tokenBalance}
-                bgColor="bg-blue-50"
-              />
-              
-              <DataCard 
-                title="Wallet Label" 
-                data={walletLabel} 
-                isLoading={loadingStates.walletLabel}
-                bgColor="bg-yellow-50"
-              />
-              
-              <DataCard 
-                title="Wallet Score" 
-                data={walletScore} 
-                isLoading={loadingStates.walletScore}
-                bgColor="bg-indigo-50"
-              />
-              
-              <DataCard 
-                title="Wallet Metrics" 
-                data={walletMetrics} 
-                isLoading={loadingStates.walletMetrics}
-                bgColor="bg-red-50"
-              />
-              
-              <DataCard 
-                title="NFT Analytics" 
-                data={nftAnalytics} 
-                isLoading={loadingStates.nftAnalytics}
-                bgColor="bg-teal-50"
-              />
-              
-              <DataCard 
-                title="NFT Traders" 
-                data={nftTraders} 
-                isLoading={loadingStates.nftTraders}
-                bgColor="bg-cyan-50"
-              />
+            {/* Enhanced Data Cards Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+              <EnhancedDataCard title="NFT Balance" icon={<Wallet className="h-5 w-5" />} bgColor="bg-purple-50">
+                <EnhancedNFTBalance />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="Token Balance" icon={<Coins className="h-5 w-5" />} bgColor="bg-blue-50">
+                <EnhancedTokenBalance />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="Wallet Labels" icon={<Shield className="h-5 w-5" />} bgColor="bg-yellow-50">
+                <EnhancedWalletLabel />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="Wallet Score" icon={<BarChart3 className="h-5 w-5" />} bgColor="bg-indigo-50">
+                <EnhancedWalletScore />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="Wallet Metrics" icon={<Activity className="h-5 w-5" />} bgColor="bg-red-50">
+                <EnhancedWalletMetrics />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="NFT Analytics" icon={<BarChart3 className="h-5 w-5" />} bgColor="bg-teal-50">
+                <EnhancedNFTAnalytics />
+              </EnhancedDataCard>
+
+              <EnhancedDataCard title="NFT Traders" icon={<Users className="h-5 w-5" />} bgColor="bg-cyan-50">
+                <EnhancedNFTTraders />
+              </EnhancedDataCard>
             </div>
           </div>
         )}
