@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![BitsCrunch NFT Analytics](https://raw.githubusercontent.com/sumionochi/bitscrunch-nft-extension/main/public/vite.svg)
+<img width="334" height="392" alt="Screenshot 2025-08-04 at 8 26 00 PM" src="https://github.com/user-attachments/assets/d2e5654f-fcbe-4f89-bcb9-e315d91dbda4" />
 
 A powerful Browser integrated Persistent SidePanel for real-time AI Piloted NFT analytics and market insights, powered by BitsCrunch API.
 Side-panel · 31 BitsCrunch endpoints · AI copilot for instant insights.
@@ -15,6 +15,8 @@ Side-panel · 31 BitsCrunch endpoints · AI copilot for instant insights.
 </div>
 
 ## 🌟 Features
+
+<img width="1354" height="801" alt="sending" src="https://github.com/user-attachments/assets/c5fc266a-dafb-4259-9ef9-7ed59f07b52f" />
 
 - **Real-time NFT Analytics**: Get instant insights into NFT valuations and market trends
 - **Multi-chain Support**: Analytics across different blockchain networks
@@ -51,6 +53,7 @@ flowchart TB
 
     BG --> Components
 ```
+<img width="283" height="455" alt="Screenshot 2025-08-04 at 8 31 41 PM" src="https://github.com/user-attachments/assets/91f2f688-2258-4bdf-b241-1e50c5f9a100" />
 
 - **Content Script** grabs NFT details from OpenSea pages.
 - **Service Worker** relays data, stores API key (Chrome `storage.local`).
@@ -60,6 +63,9 @@ flowchart TB
 --
 
 ## 🛠️ Technical Stack
+
+<img width="1356" height="813" alt="Screenshot 2025-08-04 at 8 32 26 PM" src="https://github.com/user-attachments/assets/015f5302-2a0a-439d-b7ff-eebab951cfdd" />
+
 
 - **Frontend Framework**: React 18.3 with TypeScript
 - **Build Tool**: Vite 6.0
@@ -75,6 +81,8 @@ flowchart TB
 - **Development**:
   - ESLint 9.17 for code quality
   - TypeScript 5.6 for type safety
+
+<img width="1357" height="815" alt="Screenshot 2025-08-04 at 8 32 36 PM" src="https://github.com/user-attachments/assets/73acef0a-2598-433c-a896-63791090eb5f" />
 
 --
 
@@ -109,6 +117,9 @@ npm install
 
 ## 🔧 Project Structure
 
+<img width="1357" height="877" alt="Screenshot 2025-08-04 at 7 33 13 PM" src="https://github.com/user-attachments/assets/c44d1043-c31b-49f9-a840-bcc817c40fb0" />
+
+
 ```plaintext
 bitscrunch-nft-extension/
 ├── src/
@@ -138,6 +149,9 @@ bitscrunch-nft-extension/
 --
 
 ## 🔑 API Integration
+
+<img width="1356" height="877" alt="Screenshot 2025-08-04 at 7 34 20 PM" src="https://github.com/user-attachments/assets/a17a44cf-5d70-4ba8-b930-f469727688c5" />
+
 
 The extension integrates with the UnleashNFTs API for comprehensive NFT analytics: 🔌 BitsCrunch Endpoints Used (31)
 
@@ -175,6 +189,9 @@ The extension integrates with the UnleashNFTs API for comprehensive NFT analytic
 --
 
 ## 🌐 Browser Support
+
+<img width="1355" height="873" alt="Screenshot 2025-08-04 at 7 35 14 PM" src="https://github.com/user-attachments/assets/46f2d0a3-e5d1-4a1e-b272-7d49473e6fc0" />
+
 
 - Chrome (v114+)
 - Brave (v114+)
