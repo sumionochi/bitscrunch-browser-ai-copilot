@@ -189,6 +189,8 @@ const NftTraders: React.FC<NftTradersProps> = ({
             role: "system",
             content:
               `You are an AI assistant that analyses NFT trader metrics. Context Data:\n${ctx}\n\n` +
+              + 
+            `Please provide helpful, accurate responses based on this wallet data. When users ask about specific tokens, NFTs, scores, or metrics, reference the actual data provided. Format your responses clearly and highlight important information using **bold text** for emphasis.` +
               `When a visual would help, respond with **one JSON spec wrapped in a triple-back-tick fence labelled "chart"**:\n` +
               `\`\`\`chart\n{\n  "type":"<bar|pie|line>",\n  "chartData":[{"name":"label","value":123},…],\n  "config":{"xKey":"name","yKey":"value","valueKey":"value"}\n}\n\`\`\`\n` +
               `Return **exactly one** such fenced block if (and only if) a chart is appropriate.`,

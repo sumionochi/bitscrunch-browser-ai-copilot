@@ -18,6 +18,15 @@ import { useChromeExtension } from './hooks/useChromeExtension'
 import { Button } from "./components/ui/button"
 import { Separator } from "./components/ui/separator.tsx"
 import WalletAnalysis from "./components/WalletAnalysis"
+// ─── Copilot extra imports ────────────────────────────────────────────────
+import {
+  Bot, Send, MessageCircle, X, Minimize2, Maximize2,
+} from "lucide-react"
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line
+} from "recharts"
+
 
 export interface Blockchain {
   id: number;
@@ -126,6 +135,169 @@ const App: React.FC = () => {
   // Sequential loading states
   const [sequentialTasks, setSequentialTasks] = useState<SequentialTaskStatus[]>([])
   const [isSequentialLoading, setIsSequentialLoading] = useState(false)
+
+  /* ────────────────  AI Copilot state ──────────────── */
+interface ChartSpec { type:"bar"|"pie"|"line"; chartData:any[]; config?:any }
+interface ChatMsg { id:string; role:"user"|"assistant"; content:string; timestamp:Date }
+interface ChatBox { messages:ChatMsg[]; isOpen:boolean; isMin:boolean; isStreaming:boolean }
+
+const [chat, setChat] = useState<ChatBox>({
+  messages:[], isOpen:false, isMin:false, isStreaming:false
+})
+const [chatInput,setChatInput]=useState("")
+const [openaiApiKey,setOpenaiApiKey]=useState("")
+const chatInputRef=useRef<HTMLInputElement>(null)
+const chatScrollRef=useRef<HTMLDivElement>(null)
+
+/* —— Data gate —— */
+const trendsReady = !!(
+  data.length && Tradersdata && washtradeData
+)
+
+/* —— Context builder —— */
+const ctxJSON = () => JSON.stringify({
+  metric, blockchain, timeRange,
+  marketTrend:data.slice(-25), // keep payload light
+  traders:Tradersdata,
+  washtrade:washtradeData
+},null,2)
+
+/* —— Chart renderer (same as WalletAnalysis) —— */
+const ChartRenderer:React.FC<{spec:ChartSpec}> = ({spec})=>{
+  const {type,chartData,config}=spec
+  const COLORS=["#10b981","#ef4444","#f59e0b","#6366f1"]
+  const commonTooltip={contentStyle:{border:"4px solid black",background:"white",fontWeight:"bold",boxShadow:"4px 4px 0 0 #000"}}
+  if(!Array.isArray(chartData))return null
+  return(
+    <div className="w-full h-48 bg-gray-50 border-4 border-black p-2 shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+      {type==="bar"&&(
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3"/>
+            <XAxis dataKey={config?.xKey||"name"} fontSize={10}/>
+            <YAxis fontSize={10}/>
+            <Tooltip {...commonTooltip}/>
+            <Bar dataKey={config?.yKey||"value"} fill="#6366f1" barSize={28} radius={[2,2,0,0]} stroke="#000" strokeWidth={2}/>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+      {type==="pie"&&(
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={chartData} cx="50%" cy="50%" outerRadius={80} dataKey={config?.valueKey||"value"} stroke="#000" strokeWidth={2}
+              label={({name,value})=>`${name}: ${value}`}>
+              {chartData.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
+            </Pie>
+            <Tooltip {...commonTooltip}/>
+          </PieChart>
+        </ResponsiveContainer>
+      )}
+      {type==="line"&&(
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3"/>
+            <XAxis dataKey={config?.xKey||"name"} fontSize={10}/>
+            <YAxis fontSize={10}/>
+            <Tooltip {...commonTooltip}/>
+            <Line type="monotone" dataKey={config?.yKey||"value"} stroke="#6366f1" strokeWidth={3}
+              dot={{fill:"#6366f1",stroke:"#000",strokeWidth:2,r:4}}/>
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  )
+}
+
+/* —— Text formatter —— */
+const fmtTxt=(t:string)=>t.split("\n").map((l,i)=>{
+  const b=l.replace(/\*\*(.*?)\*\*/g,'<strong class="font-black bg-yellow-200 px-1 border-2 border-black">$1</strong>')
+  const c=b.replace(/`(.*?)`/g,'<code class="bg-gray-200 px-2 py-1 border-2 border-black font-mono text-xs">$1</code>')
+  return <div key={i} dangerouslySetInnerHTML={{__html:c}}/>
+})
+
+const MsgContent:React.FC<{content:string}> = ({content})=>{
+  const m=content.match(/```chart\n([\s\S]*?)\n```/)
+  if(m){
+    try{
+      const spec=JSON.parse(m[1]) as ChartSpec
+      const rest=content.replace(/```chart\n[\s\S]*?\n```/,"").trim()
+      return(<div className="space-y-3">{rest&&<div className="formatted-text">{fmtTxt(rest)}</div>}<ChartRenderer spec={spec}/></div>)
+    }catch{}
+  }
+  return <div className="formatted-text">{fmtTxt(content)}</div>
+}
+
+/* —— OpenAI streaming —— */
+const askOpenAI=async(userMsg:string)=>{
+  if(!openaiApiKey)throw new Error("API key missing")
+  const res=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{Authorization:`Bearer ${openaiApiKey}`,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      stream:true,
+      temperature:0.7,
+      max_tokens:1000,
+      messages:[
+        {role:"system",content:
+            `You are an AI assistant helping users analyse broad NFT-market trends. Context Data:\n${ctxJSON()}
+            Please provide helpful, accurate responses based on this wallet data. When users ask about specific tokens, NFTs, scores, or metrics, reference the actual data provided. Format your responses clearly and highlight important information using **bold text** for emphasis.
+              When a visual would help, respond with **one JSON spec wrapped in a triple-back-tick fence labelled "chart"**:\n` +
+              `\`\`\`chart\n{\n  "type":"<bar|pie|line>",\n  "chartData":[{"name":"label","value":123},…],\n  "config":{"xKey":"name","yKey":"value","valueKey":"value"}\n}\n\`\`\`\n` +
+              `Return **exactly one** such fenced block if (and only if) a chart is useful. The front-end will render it automatically.`,},
+        {role:"user",content:userMsg}
+      ]
+    })
+  })
+  if(!res.ok)throw new Error(res.statusText)
+  return res.body
+}
+
+const submitChat=async(e:React.FormEvent)=>{
+  e.preventDefault()
+  if(!chatInput.trim()||chat.isStreaming)return
+  const user:{id:string;role:"user";content:string;timestamp:Date}={
+    id:Date.now().toString(),role:"user",content:chatInput.trim(),timestamp:new Date()
+  }
+  setChat(p=>({...p,messages:[...p.messages,user],isStreaming:true}))
+  setChatInput("")
+  try{
+    const stream=await askOpenAI(user.content)
+    const reader=stream?.getReader()
+    const dec=new TextDecoder()
+    const assistant:{id:string;role:"assistant";content:string;timestamp:Date}={id:(Date.now()+1).toString(),role:"assistant",content:"",timestamp:new Date()}
+    setChat(p=>({...p,messages:[...p.messages,assistant]}))
+    if(reader)
+      while(true){
+        const {done,value}=await reader.read()
+        if(done)break
+        const chunk=dec.decode(value)
+        chunk.split("\n").forEach(l=>{
+          if(!l.startsWith("data: "))return
+          const d=l.slice(6)
+          if(d==="[DONE]")return
+          try{
+            const json=JSON.parse(d)
+            const delta=json.choices?.[0]?.delta?.content||""
+            if(delta) setChat(p=>{
+              const msgs=[...p.messages]
+              msgs[msgs.length-1].content+=delta
+              return {...p,messages:msgs}
+            })
+          }catch{}
+        })
+      }
+  }catch(err:any){
+    setChat(p=>({...p,messages:[...p.messages,{id:(Date.now()+2).toString(),role:"assistant",content:`Error: ${err.message}`,timestamp:new Date()}]}))
+  }finally{ setChat(p=>({...p,isStreaming:false})) }
+}
+
+/* —— Auto-scroll & focus —— */
+useEffect(()=>{ if(chatScrollRef.current&&chat.isOpen&&!chat.isMin)
+  chatScrollRef.current.scrollTop=chatScrollRef.current.scrollHeight
+},[chat.messages,chat.isOpen,chat.isMin])
+useEffect(()=>{ if(chat.isOpen&&!chat.isMin&&chatInputRef.current) chatInputRef.current.focus() },[chat.isOpen,chat.isMin])
+
 
 // 👉 Utility to turn "{a,b,c}" into ['a','b','c'] or numbers
 const parseBraceArray = <T extends string | number = string>(raw: string | any): T[] => {
@@ -636,6 +808,101 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
       <div className="flex gap-2 md:gap-4 mt-0 justify-center items-start">
         {activeTab === "trends" && (
           <div className="flex flex-col item-center justify-center gap-2 sm:gap-4 md:gap-8 pb-4 w-full">
+            {/* ─── AI Copilot for Trends ───────────────────────── */}
+            <div className="w-full">
+              {!chat.isOpen && (
+                <Button
+                  onClick={()=>setChat(p=>({...p,isOpen:true}))}
+                  disabled={!trendsReady}
+                  className={`w-full font-bold py-3 px-4 border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 ${
+                    trendsReady?"bg-gradient-to-r from-purple-200 to-pink-200 hover:from-purple-300 hover:to-pink-300":"bg-gray-200 text-gray-500 cursor-not-allowed"
+                  }`}>
+                  <Bot className="h-5 w-5"/> Ask AI Copilot…
+                </Button>
+              )}
+
+              {chat.isOpen && (
+                <Card className="border-4 border-black bg-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] mb-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-200 to-pink-200 border-b-4 border-black">
+                    <div className="flex items-center gap-2"><Bot className="h-5 w-5"/><span className="font-black text-sm">AI Copilot</span></div>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={()=>setChat(p=>({...p,isMin:!p.isMin}))} size="sm" variant="ghost"
+                        className="p-1 bg-black/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+                        {chat.isMin?<Maximize2 className="h-4 w-4"/>:<Minimize2 className="h-4 w-4"/>}
+                      </Button>
+                      <Button onClick={()=>setChat({messages:[],isOpen:false,isMin:false,isStreaming:false})} size="sm" variant="ghost"
+                        className="p-1 bg-black/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]"><X className="h-4 w-4"/></Button>
+                    </div>
+                  </div>
+
+                  {!chat.isMin && (
+                    <>
+                      {/* Key prompt */}
+                      {!openaiApiKey&&(
+                        <div className="p-3 bg-yellow-100 border-b-4 border-black">
+                          <label className="text-xs font-bold text-gray-700">OpenAI API Key Required:</label>
+                          <input type="password" placeholder="Enter your OpenAI API key"
+                            className="mt-2 w-full text-xs p-2 border-4 border-black font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)]"
+                            onChange={e=>setOpenaiApiKey(e.target.value)}/>
+                          <p className="text-xs text-gray-600 font-bold mt-1">Key is stored locally, never sent to server.</p>
+                        </div>
+                      )}
+
+                      {/* Transcript */}
+                      <div ref={chatScrollRef} className="h-64 overflow-y-auto p-3 space-y-3 bg-gray-50 border-b-4 border-black">
+                        {chat.messages.length===0&&(
+                          <div className="text-center text-gray-500 text-sm p-4 border-4 border-gray-300 bg-white shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                            <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50"/>
+                            <p className="font-black">Ask me anything about these trends!</p>
+                            <p className="text-xs mt-1 font-bold">Try: "Show pie of washtrade volume"</p>
+                          </div>
+                        )}
+                        {chat.messages.map(m=>{
+                          const hasChart=m.content.includes("```chart")
+                          const width=hasChart?"w-full max-w-none":"max-w-xs lg:max-w-md"
+                          return(
+                            <div key={m.id} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
+                              <div className={`${width} px-4 py-3 border-4 border-black font-bold text-sm shadow-[4px_4px_0_0_rgba(0,0,0,1)] ${
+                                  m.role==="user"?"bg-blue-200 text-blue-900":"bg-white text-gray-800"}`}>
+                                <MsgContent content={m.content}/>
+                                <div className="text-xs opacity-70 mt-2 font-bold">{m.timestamp.toLocaleTimeString()}</div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {chat.isStreaming&&(
+                          <div className="flex justify-start">
+                            <div className="bg-white border-4 border-black px-4 py-3 shadow-[4px_4px_0_0_rgba(0,0,0,1)]">
+                              <div className="flex items-center space-x-1">
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black"></div>
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black" style={{animationDelay:"0.1s"}}></div>
+                                <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black" style={{animationDelay:"0.2s"}}></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Input */}
+                      {openaiApiKey&&(
+                        <form onSubmit={submitChat} className="p-3 bg-white">
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <input ref={chatInputRef} value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                              placeholder="Ask about these charts…" disabled={chat.isStreaming}
+                              className="flex-grow text-sm p-3 bg-white border-4 border-black font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus:shadow-[4px_4px_0_0_rgba(0,0,0,1)] outline-none"/>
+                            <Button type="submit" disabled={!chatInput.trim()||chat.isStreaming}
+                              className="flex-shrink-0 md:w-14 bg-purple-200 hover:bg-purple-300 border-4 border-black font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] disabled:opacity-50 grid place-content-center">
+                              <Send className="h-5 w-5"/>
+                            </Button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  )}
+                </Card>
+              )}
+            </div>
             <Card className="bg-white border-2 sm:border-4 w-full max-w-full sm:max-w-4xl h-auto border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
               <CardHeader className="p-2 sm:p-4">
                 <CardTitle className="text-base sm:text-xl text-center font-black uppercase bg-orange-200 p-1 sm:p-2 border-2 sm:border-4 border-black inline-block">
