@@ -17,6 +17,7 @@ import NftAnalytics from './components/NftAnalytics'
 import { useChromeExtension } from './hooks/useChromeExtension'
 import { Button } from "./components/ui/button"
 import { Separator } from "./components/ui/separator.tsx"
+import WalletAnalysis from "./components/WalletAnalysis"
 
 export interface Blockchain {
   id: number;
@@ -109,7 +110,7 @@ const App: React.FC = () => {
   const [nftDetails, setNftDetails] = useState<{ blockchain: string; contractAddress: string; tokenId: string } | null>(null)
   const [priceEstimate, setPriceEstimate] = useState<PriceEstimateData | null>(null)
   const [collectionPriceEstimate, setCollectionPriceEstimate] = useState<PriceEstimateData[] | null>(null)
-  const [activeTab, setActiveTab] = useState<"nft-details" | "nft-transaction" | "nft-traders" | "nft-analytics" | "trends">("nft-details")
+  const [activeTab, setActiveTab] = useState<"nft-details" | "nft-transaction" | "nft-traders" | "nft-analytics" | "wallet-analysis" | "trends">("nft-details")  
   const [Tradersdata, setTradersData] = useState<TradersData | null>(null)
   const [washtradeData, setWashtradeData] = useState<{
     block_dates: string[]
@@ -592,6 +593,7 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
             <span>
               {{
                 'nft-details': 'NFT Details',
+                'wallet-analysis': 'Wallet Analysis',
                 'nft-transaction': 'NFT Transaction',
                 'nft-traders': 'NFT Traders',
                 'trends': 'Broad Analysis',
@@ -603,6 +605,7 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
         <SelectContent className="border-4 border-black bg-white text-black max-h-60 overflow-y-auto">
           <SelectGroup>
             <SelectItem value="nft-details" className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer">NFT Details</SelectItem>
+            <SelectItem value="wallet-analysis" className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer">Wallet Analysis</SelectItem>
             <SelectItem value="nft-transaction" className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer">NFT Transaction</SelectItem>
             <SelectItem value="nft-traders" className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer">NFT Traders</SelectItem>
             <SelectItem value="nft-analytics" className="hover:bg-zinc-200 focus:bg-blue-500 focus:text-white cursor-pointer">NFT Analytics</SelectItem>
@@ -700,6 +703,23 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
               </CardContent>
             </Card>
           </div>
+        )}
+        {activeTab === "wallet-analysis" && (
+          <Card className="bg-white space-y-4 border-4 border-black p-3 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
+            <CardHeader className="text-center">
+              <CardTitle className="text-lg text-center md:text-xl font-black uppercase bg-orange-200 p-2 md:p-4 border-4 border-black inline-block">Wallet Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WalletAnalysis
+                apiKey={apiKey}
+                tabInfo={tabInfo}
+                isSidepanel={isSidepanel}
+                refreshTabInfo={refreshTabInfo}
+                tabLoading={tabLoading}
+                timeRange={timeRange}
+              />
+            </CardContent>
+          </Card>
         )}
         {activeTab === "nft-details" && (
           <Card className="bg-white border-4 space-y-4 border-black p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all min-w-0 max-w-full">
