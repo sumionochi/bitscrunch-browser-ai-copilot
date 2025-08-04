@@ -1,10 +1,11 @@
-# BitsCrunch NFT Analytics Extension 🚀
+# BitsCrunch Browser AI Copilot 🚀
 
 <div align="center">
 
 ![BitsCrunch NFT Analytics](https://raw.githubusercontent.com/sumionochi/bitscrunch-nft-extension/main/public/vite.svg)
 
-A powerful browser extension for real-time NFT analytics and market insights, powered by BitsCrunch API.
+A powerful Browser integrated Persistent SidePanel for real-time AI Piloted NFT analytics and market insights, powered by BitsCrunch API.
+Side-panel · 31 BitsCrunch endpoints · AI copilot for instant insights.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
@@ -26,6 +27,8 @@ A powerful browser extension for real-time NFT analytics and market insights, po
 - **Interactive Charts**: Dynamic data visualization
 - **Custom Time Ranges**: Flexible time period selection
 
+--
+
 ## 🏗️ Architecture
 
 ```mermaid
@@ -36,7 +39,7 @@ flowchart TB
         CS[Content Script] --> BG
         BG --> API[BitsCrunch API]
     end
-    
+
     subgraph Components
         NP[NFT Price Card]
         CP[Collection Price Card]
@@ -45,19 +48,26 @@ flowchart TB
         WA[Wallet Analysis]
         CH[Charts]
     end
-    
+
     BG --> Components
 ```
+
+- **Content Script** grabs NFT details from OpenSea pages.
+- **Service Worker** relays data, stores API key (Chrome `storage.local`).
+- **React 18 + Vite** renders tabs, queues API calls, caches responses (5-30 min).
+- **Tailwind + shadcn/ui + Recharts** for sharp cards & charts.
+
+--
 
 ## 🛠️ Technical Stack
 
 - **Frontend Framework**: React 18.3 with TypeScript
 - **Build Tool**: Vite 6.0
-- **Styling**: 
+- **Styling**:
   - Tailwind CSS 3.4
   - shadcn/ui components
   - Radix UI primitives
-- **Data Visualization**: 
+- **Data Visualization**:
   - Recharts for interactive charts
   - Custom chart components
 - **State Management**: React Hooks and Context
@@ -66,20 +76,25 @@ flowchart TB
   - ESLint 9.17 for code quality
   - TypeScript 5.6 for type safety
 
+--
+
 ## 📦 Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/bitscrunch-nft-extension.git
 ```
 
 2. Install dependencies:
+
 ```bash
 cd bitscrunch-nft-extension
 npm install
 ```
 
 3. Build the extension:
+
 ```bash
 ./build-extension.sh
 ```
@@ -89,6 +104,8 @@ npm install
    - Enable "Developer mode"
    - Click "Load unpacked"
    - Select the `dist` folder from your build
+
+--
 
 ## 🔧 Project Structure
 
@@ -118,24 +135,44 @@ bitscrunch-nft-extension/
 └── package.json
 ```
 
+--
+
 ## 🔑 API Integration
 
-The extension integrates with the UnleashNFTs API for comprehensive NFT analytics:
+The extension integrates with the UnleashNFTs API for comprehensive NFT analytics: 🔌 BitsCrunch Endpoints Used (31)
 
-- `/api/v2/nft/blockchains` - Supported blockchain networks
-- `/api/v2/nft/market-trend` - Market trend data
-- `/api/v2/nft/traders` - Trader activity metrics
-- `/api/v2/nft/washtrade` - Washtrade pattern analysis
-- `/api/v2/nft/price-estimate` - NFT price estimations
-- `/api/v2/nft/collection-price-estimate` - Collection price analysis
-- `/api/v2/nft/transactions` - Transaction history
+| Purpose                                          | Endpoint                                            |
+| ------------------------------------------------ | --------------------------------------------------- |
+| Blockchains list                                 | `GET /api/v2/blockchains`                           |
+| Market trend                                     | `GET /api/v1/market/trend`                          |
+| NFT price                                        | `GET /api/v2/nft/liquify/price_estimate`            |
+| Collection price                                 | `GET /api/v2/nft/liquify/collection/price_estimate` |
+| NFT analytics                                    | `GET /api/v2/nft/analytics`                         |
+| NFT scores                                       | `GET /api/v2/nft/scores`                            |
+| Holder data                                      | `GET /api/v2/nft/owner`                             |
+| NFT washtrade                                    | `GET /api/v2/nft/washtrade`                         |
+| NFT traders (snapshot)                           | `GET /api/v2/nft/traders`                           |
+| NFT traders (trend)                              | `GET /api/v2/nft/market-insights/traders`           |
+| NFT transactions                                 | `GET /api/v2/nft/transactions`                      |
+| Chain washtrade trend                            | `GET /api/v2/nft/market-insights/washtrade`         |
+| Wallet NFT balance                               | `GET /api/v2/wallet/balance/nft`                    |
+| Wallet token balance                             | `GET /api/v2/wallet/balance/token`                  |
+| Wallet label                                     | `GET /api/v2/wallet/label`                          |
+| Wallet score                                     | `GET /api/v2/wallet/score`                          |
+| Wallet metrics                                   | `GET /api/v2/wallet/metrics`                        |
+| Wallet NFT analytics                             | `GET /api/v2/nft/wallet/analytics`                  |
+| Wallet NFT traders                               | `GET /api/v2/nft/wallet/traders`                    |
+| … plus 12 auxiliary paginated /timespan variants |                                                     |
 
-## 🔐 Security
+--
 
-- API keys are securely stored in Chrome's storage API
-- CORS policies properly configured for API requests
-- Content Security Policy (CSP) implemented
-- No sensitive data exposed in the codebase
+## 🔒 Security Notes
+
+- **Keys never leave your device.** BitsCrunch key in `storage.local`; OpenAI key kept in memory per session.
+- Strict CSP & host-permissions (`api.unleashnfts.com`, `openai.com`, `opensea.io`).
+- No third-party tracking.
+
+--
 
 ## 🌐 Browser Support
 
@@ -143,6 +180,22 @@ The extension integrates with the UnleashNFTs API for comprehensive NFT analytic
 - Brave (v114+)
 - Edge (v114+)
 - Other Chromium-based browsers (v114+)
+
+--
+
+## 🗂️ Key React Components
+
+| File                          | Responsibility                   | Main APIs                           |
+| ----------------------------- | -------------------------------- | ----------------------------------- |
+| `NftPriceCard.tsx`            | Liquify price, AI chat           | price_estimate                      |
+| `NftCollectionPriceCard.tsx`  | Collection valuation             | collection/price_estimate           |
+| `NftTransaction.tsx`          | Tx table + chart, AI             | transactions                        |
+| `NftTraders.tsx`              | Buyer/seller stats, chart        | traders, traders trend              |
+| `NftAnalytics.tsx`            | Perf, volume, wash, holder       | analytics, scores, owner, washtrade |
+| `WalletAnalysis.tsx`          | Portfolio dashboard, AI          | wallet \* endpoints                 |
+| `hooks/useChromeExtension.ts` | Tabs, storage, sidepanel helpers | –                                   |
+
+--
 
 ## 🤝 Contributing
 
@@ -152,12 +205,17 @@ The extension integrates with the UnleashNFTs API for comprehensive NFT analytic
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+--
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+--
+
 ## 🙏 Acknowledgments
 
 - Built with [BitsCrunch](https://www.bitscrunch.com/) API
+- OpenAI api - gpt-4o-mini
 - UI components powered by shadcn/ui
 - Charts and visualizations using Recharts
