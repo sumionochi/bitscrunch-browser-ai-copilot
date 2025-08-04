@@ -37,6 +37,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from "recharts"
+import { Send, Bot, MessageCircle, X, Minimize2, Maximize2 } from "lucide-react"
 
 interface WalletInfo {
   address: string
@@ -76,6 +77,20 @@ interface WalletAnalysisProps {
   refreshTabInfo?: () => void
   tabLoading?: boolean
   timeRange: string
+}
+
+interface ChatMessage {
+    id: string
+    role: 'user' | 'assistant'
+    content: string
+    timestamp: Date
+  }
+  
+interface ChatState {
+messages: ChatMessage[]
+isOpen: boolean
+isMinimized: boolean
+isStreaming: boolean
 }
 
 // Cache duration in milliseconds
@@ -153,7 +168,6 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
       const walletMatch = url.match(/opensea\.io\/([^/?]+)/)
       if (walletMatch && walletMatch[1]) {
         const address = walletMatch[1]
-        // Check if it's a valid Ethereum address (starts with 0x and is 42 characters)
         if (address.startsWith("0x") && address.length === 42) {
           return {
             address: address,
@@ -210,6 +224,319 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
       { name: "nftAnalytics", status: "pending", message: "Waiting to load NFT analytics..." },
       { name: "nftTraders", status: "pending", message: "Waiting to load NFT traders..." },
     ])
+  }
+
+  const [chatState, setChatState] = useState<ChatState>({
+    messages: [],
+    isOpen: false,
+    isMinimized: false,
+    isStreaming: false
+  })
+  const [chatInput, setChatInput] = useState('')
+  const [openaiApiKey, setOpenaiApiKey] = useState('')
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  
+  // Add this helper function to check if all data is available
+const isAllDataLoaded = () => {
+    return !!(nftBalance && tokenBalance && walletLabel && walletScore && walletMetrics && nftAnalytics && nftTraders)
+  }
+  
+  // Add this function to prepare context data for OpenAI
+  const prepareContextData = () => {
+    const contextData = {
+      walletAddress: walletInfo?.address,
+      blockchain: walletInfo?.blockchain,
+      nftBalance: nftBalance?.data,
+      tokenBalance: tokenBalance?.data,
+      walletLabel: walletLabel?.data,
+      walletScore: walletScore?.data,
+      walletMetrics: walletMetrics?.data,
+      nftAnalytics: nftAnalytics?.data,
+      nftTraders: nftTraders?.data
+    }
+    
+    return JSON.stringify(contextData, null, 2)
+  }
+  
+  // Add this function to send message to OpenAI
+  const sendToOpenAI = async (userMessage: string, contextData: string) => {
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key is required')
+    }
+  
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an AI assistant helping users analyze their crypto wallet data. You have access to comprehensive wallet analysis data including NFT balance, token balance, wallet labels, wallet score, wallet metrics, NFT analytics, and NFT traders data. 
+  
+  Context Data:
+  ${contextData}
+  
+  Please provide helpful, accurate responses based on this wallet data. When users ask about specific tokens, NFTs, scores, or metrics, reference the actual data provided. Format your responses clearly and highlight important information.`
+          },
+          {
+            role: 'user',
+            content: userMessage
+          }
+        ],
+        stream: true,
+        max_tokens: 1000,
+        temperature: 0.7
+      })
+    })
+  
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`)
+    }
+  
+    return response
+  }
+  
+  // Add this function to handle chat submission
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chatInput.trim() || chatState.isStreaming) return
+  
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: chatInput.trim(),
+      timestamp: new Date()
+    }
+  
+    setChatState(prev => ({
+      ...prev,
+      messages: [...prev.messages, userMessage],
+      isStreaming: true
+    }))
+  
+    setChatInput('')
+  
+    try {
+      const contextData = prepareContextData()
+      const response = await sendToOpenAI(userMessage.content, contextData)
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      }
+  
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, assistantMessage]
+      }))
+  
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+  
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+  
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+  
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') continue
+  
+              try {
+                const parsed = JSON.parse(data)
+                const content = parsed.choices?.[0]?.delta?.content || ''
+                
+                if (content) {
+                  setChatState(prev => {
+                    const updatedMessages = [...prev.messages]
+                    const lastMessage = updatedMessages[updatedMessages.length - 1]
+                    if (lastMessage.role === 'assistant') {
+                      lastMessage.content += content
+                    }
+                    return { ...prev, messages: updatedMessages }
+                  })
+                }
+              } catch (e) {
+                // Ignore JSON parse errors for incomplete chunks
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to get response from AI'}`,
+        timestamp: new Date()
+      }
+  
+      setChatState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage]
+      }))
+    } finally {
+      setChatState(prev => ({ ...prev, isStreaming: false }))
+    }
+  }
+  
+  // Add this useEffect to scroll chat to bottom
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+  }, [chatState.messages])
+  
+  // AI Copilot Chatbot Component - Add this component
+  const AICopilotChatbot = () => {
+    if (!isAllDataLoaded()) return null
+  
+    return (
+      <div className="relative">
+        {/* Chat Toggle Button */}
+        {!chatState.isOpen && (
+          <Button
+            onClick={() => setChatState(prev => ({ ...prev, isOpen: true }))}
+            className="w-full bg-gradient-to-r from-purple-200 to-pink-200 hover:from-purple-300 hover:to-pink-300 text-black font-bold py-3 px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
+          >
+            <Bot className="h-5 w-5" />
+            Ask AI Copilot about your wallet
+          </Button>
+        )}
+  
+        {/* Chat Interface */}
+        {chatState.isOpen && (
+          <Card className="border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-4">
+            {/* Chat Header */}
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-200 to-pink-200 border-b-4 border-black">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                <span className="font-black text-sm">AI Wallet Copilot</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setChatState(prev => ({ ...prev, isMinimized: !prev.isMinimized }))}
+                  size="sm"
+                  variant="ghost"
+                  className="p-1 hover:bg-black/10"
+                >
+                  {chatState.isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  onClick={() => setChatState(prev => ({ ...prev, isOpen: false, messages: [] }))}
+                  size="sm"
+                  variant="ghost"
+                  className="p-1 hover:bg-black/10"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+  
+            {!chatState.isMinimized && (
+              <>
+                {/* OpenAI API Key Input */}
+                {!openaiApiKey && (
+                  <div className="p-3 bg-yellow-100 border-b-4 border-black">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-700">OpenAI API Key Required:</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          placeholder="Enter your OpenAI API key"
+                          className="flex-1 text-xs p-2 border-2 border-black font-mono"
+                          onChange={(e) => setOpenaiApiKey(e.target.value)}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600">Your API key is stored locally and never sent to our servers.</p>
+                    </div>
+                  </div>
+                )}
+  
+                {/* Chat Messages */}
+                <div 
+                  ref={chatContainerRef}
+                  className="h-64 overflow-y-auto p-3 space-y-3 bg-gray-50"
+                >
+                  {chatState.messages.length === 0 && (
+                    <div className="text-center text-gray-500 text-sm">
+                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="font-bold">Ask me anything about your wallet!</p>
+                      <p className="text-xs mt-1">Try: "What's my token balance?" or "Tell me about my NFTs"</p>
+                    </div>
+                  )}
+  
+                  {chatState.messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg border-2 border-black font-bold text-sm ${
+                          message.role === 'user'
+                            ? 'bg-blue-200 text-blue-900'
+                            : 'bg-white text-gray-800'
+                        }`}
+                      >
+                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+  
+                  {chatState.isStreaming && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border-2 border-black px-3 py-2 rounded-lg">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+  
+                {/* Chat Input */}
+                {openaiApiKey && (
+                  <form onSubmit={handleChatSubmit} className="p-3 border-t-4 border-black bg-white">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask about your wallet data..."
+                        className="flex-1 text-sm p-2 border-2 border-black font-bold"
+                        disabled={chatState.isStreaming}
+                      />
+                      <Button
+                        type="submit"
+                        disabled={!chatInput.trim() || chatState.isStreaming}
+                        className="bg-purple-200 hover:bg-purple-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </>
+            )}
+          </Card>
+        )}
+      </div>
+    )
   }
 
   // Individual API fetch functions (keeping the same logic but updating state)
@@ -1628,6 +1955,10 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
                 ))}
               </select>
             </div>
+
+            <Separator className="bg-black" />
+
+            <AICopilotChatbot />
 
             <Separator className="bg-black" />
 
