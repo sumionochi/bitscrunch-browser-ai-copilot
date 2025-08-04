@@ -124,7 +124,6 @@ const NftTransaction: React.FC<NftTransactionProps> = ({
     isMinimized: false,
     isStreaming: false,
   })
-  const [chatInput, setChatInput] = useState("")
   const chatInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const [openaiApiKey, setOpenaiApiKey] = useState("")
@@ -181,16 +180,17 @@ const NftTransaction: React.FC<NftTransactionProps> = ({
   /* ────── Chat submit ────── */
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim() || chatState.isStreaming) return
+    const text = chatInputRef.current?.value.trim() ?? ''
+    if (!text || chatState.isStreaming) return
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: chatInput.trim(),
+      content: text,
       timestamp: new Date(),
     }
     setChatState((p) => ({ ...p, messages: [...p.messages, userMessage], isStreaming: true }))
-    setChatInput("")
+    if (chatInputRef.current) chatInputRef.current.value = ''
 
     try {
       const context = prepareContextData()
@@ -565,15 +565,14 @@ const NftTransaction: React.FC<NftTransactionProps> = ({
                     <input
                       ref={chatInputRef}
                       type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
+                      
                       placeholder="Ask about these transactions…"
                       className="flex-grow text-sm p-3 bg-white border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none"
                       disabled={chatState.isStreaming}
                     />
                     <Button
                       type="submit"
-                      disabled={!chatInput.trim() || chatState.isStreaming}
+                      disabled={chatState.isStreaming}
                       className="flex-shrink-0 md:w-14 bg-purple-200 hover:bg-purple-300 border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 grid place-content-center"
                     >
                       <Send className="h-5 w-5" />

@@ -233,7 +233,6 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
     isMinimized: false,
     isStreaming: false
   })
-  const [chatInput, setChatInput] = useState('')
   const chatInputRef = useRef<HTMLInputElement>(null)
   const [openaiApiKey, setOpenaiApiKey] = useState('')
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -331,12 +330,13 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
 // Handle chat submission
 const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim() || chatState.isStreaming) return
-  
+    const text = chatInputRef.current?.value.trim() ?? ''
+    if (!text || chatState.isStreaming) return
+      
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: chatInput.trim(),
+      content: text,
       timestamp: new Date(),
     }
   
@@ -345,11 +345,10 @@ const handleChatSubmit = async (e: React.FormEvent) => {
       messages: [...prev.messages, userMessage],
       isStreaming: true,
     }))
-    setChatInput('')
-  
+    if (chatInputRef.current) chatInputRef.current.value = '';  
     try {
       const contextData = prepareContextData()
-      const response = await sendToOpenAI(chatInput.trim(), contextData)
+      const response = await sendToOpenAI(text, contextData)
   
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -569,8 +568,7 @@ const handleChatSubmit = async (e: React.FormEvent) => {
                     <input
                         type="text"
                         ref={chatInputRef}
-                        value={chatInput}
-                        onChange={e => setChatInput(e.target.value)}
+                        
                         placeholder="Ask about your wallet data…"
                         className="
                         flex-grow min-w-0                 /* 👉 always fills the remaining space */
@@ -586,7 +584,7 @@ const handleChatSubmit = async (e: React.FormEvent) => {
                     {/* button ───────────────────────────────────────────── */}
                     <Button
                         type="submit"
-                        disabled={!chatInput.trim() || chatState.isStreaming}
+                        disabled={chatState.isStreaming}
                         className="
                         flex-shrink-0               /* 👉 never stretches */
                         md:w-14 md:h-auto           /* fixed width on wide screens */

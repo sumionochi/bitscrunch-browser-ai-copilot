@@ -209,7 +209,6 @@ const NftAnalytics: React.FC<NftAnalyticsProps> = ({
     isMinimized: false,
     isStreaming: false,
   })
-  const [chatInput, setChatInput] = useState("")
   const [openaiApiKey, setOpenaiApiKey] = useState("")
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<HTMLInputElement>(null)
@@ -266,10 +265,12 @@ const NftAnalytics: React.FC<NftAnalyticsProps> = ({
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim() || chatState.isStreaming) return
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: chatInput.trim(), timestamp: new Date() }
+    const text = chatInputRef.current?.value.trim() ?? ''
+    if (!text || chatState.isStreaming) return
+
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text, timestamp: new Date() }
     setChatState((p) => ({ ...p, messages: [...p.messages, userMsg], isStreaming: true }))
-    setChatInput("")
+    if (chatInputRef.current) chatInputRef.current.value = ''
 
     try {
       const ctx = prepareContextData()
@@ -490,8 +491,8 @@ const NftAnalytics: React.FC<NftAnalyticsProps> = ({
               {openaiApiKey && (
                 <form onSubmit={handleChatSubmit} className="p-3 bg-white">
                   <div className="flex flex-col md:flex-row gap-2">
-                    <input ref={chatInputRef} value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask about analytics…" className="flex-grow text-sm p-3 bg-white border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none" disabled={chatState.isStreaming} />
-                    <Button type="submit" disabled={!chatInput.trim() || chatState.isStreaming} className="flex-shrink-0 md:w-14 bg-purple-200 hover:bg-purple-300 border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 grid place-content-center">
+                    <input ref={chatInputRef}  placeholder="Ask about analytics…" className="flex-grow text-sm p-3 bg-white border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none" disabled={chatState.isStreaming} />
+                    <Button type="submit" disabled={chatState.isStreaming} className="flex-shrink-0 md:w-14 bg-purple-200 hover:bg-purple-300 border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 grid place-content-center">
                       <Send className="h-5 w-5" />
                     </Button>
                   </div>

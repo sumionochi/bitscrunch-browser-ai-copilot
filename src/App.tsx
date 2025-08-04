@@ -144,7 +144,6 @@ interface ChatBox { messages:ChatMsg[]; isOpen:boolean; isMin:boolean; isStreami
 const [chat, setChat] = useState<ChatBox>({
   messages:[], isOpen:false, isMin:false, isStreaming:false
 })
-const [chatInput,setChatInput]=useState("")
 const [openaiApiKey,setOpenaiApiKey]=useState("")
 const chatInputRef=useRef<HTMLInputElement>(null)
 const chatScrollRef=useRef<HTMLDivElement>(null)
@@ -255,12 +254,13 @@ const askOpenAI=async(userMsg:string)=>{
 
 const submitChat=async(e:React.FormEvent)=>{
   e.preventDefault()
-  if(!chatInput.trim()||chat.isStreaming)return
+  const text = chatInputRef.current?.value.trim() ?? ''
+  if (!text || chat.isStreaming) return
   const user:{id:string;role:"user";content:string;timestamp:Date}={
-    id:Date.now().toString(),role:"user",content:chatInput.trim(),timestamp:new Date()
+    id:Date.now().toString(),role:"user",content:text,timestamp:new Date()
   }
   setChat(p=>({...p,messages:[...p.messages,user],isStreaming:true}))
-  setChatInput("")
+  if (chatInputRef.current) chatInputRef.current.value = ''
   try{
     const stream=await askOpenAI(user.content)
     const reader=stream?.getReader()
@@ -888,10 +888,10 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
                       {openaiApiKey&&(
                         <form onSubmit={submitChat} className="p-3 bg-white">
                           <div className="flex flex-col md:flex-row gap-2">
-                            <input ref={chatInputRef} value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                            <input ref={chatInputRef}
                               placeholder="Ask about these charts…" disabled={chat.isStreaming}
                               className="flex-grow text-sm p-3 bg-white border-4 border-black font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus:shadow-[4px_4px_0_0_rgba(0,0,0,1)] outline-none"/>
-                            <Button type="submit" disabled={!chatInput.trim()||chat.isStreaming}
+                            <Button type="submit" disabled={chat.isStreaming}
                               className="flex-shrink-0 md:w-14 bg-purple-200 hover:bg-purple-300 border-4 border-black font-bold shadow-[2px_2px_0_0_rgba(0,0,0,1)] hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] disabled:opacity-50 grid place-content-center">
                               <Send className="h-5 w-5"/>
                             </Button>
