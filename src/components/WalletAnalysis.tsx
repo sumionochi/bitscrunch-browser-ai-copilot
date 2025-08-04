@@ -328,7 +328,7 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
   }
   
 // Handle chat submission
-const handleChatSubmit = async (e: React.FormEvent) => {
+  const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const text = chatInputRef.current?.value.trim() ?? ''
     if (!text || chatState.isStreaming) return
