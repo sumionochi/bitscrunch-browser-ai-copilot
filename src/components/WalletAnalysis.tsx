@@ -38,6 +38,7 @@ import {
   RadialBar,
 } from "recharts"
 import { Send, Bot, MessageCircle, X, Minimize2, Maximize2 } from "lucide-react"
+import { LineChart, Line } from "recharts"
 
 interface WalletInfo {
   address: string
@@ -233,11 +234,12 @@ const WalletAnalysis: React.FC<WalletAnalysisProps> = ({
     isStreaming: false
   })
   const [chatInput, setChatInput] = useState('')
+  const chatInputRef = useRef<HTMLInputElement>(null)
   const [openaiApiKey, setOpenaiApiKey] = useState('')
   const chatContainerRef = useRef<HTMLDivElement>(null)
   
   // Add this helper function to check if all data is available
-const isAllDataLoaded = () => {
+    const isAllDataLoaded = () => {
     return !!(nftBalance && tokenBalance && walletLabel && walletScore && walletMetrics && nftAnalytics && nftTraders)
   }
   
@@ -271,17 +273,43 @@ const isAllDataLoaded = () => {
         'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
             content: `You are an AI assistant helping users analyze their crypto wallet data. You have access to comprehensive wallet analysis data including NFT balance, token balance, wallet labels, wallet score, wallet metrics, NFT analytics, and NFT traders data. 
-  
-  Context Data:
-  ${contextData}
-  
-  Please provide helpful, accurate responses based on this wallet data. When users ask about specific tokens, NFTs, scores, or metrics, reference the actual data provided. Format your responses clearly and highlight important information.`
-          },
+            Context Data:
+            ${contextData}
+            Please provide helpful, accurate responses based on this wallet data. When users ask about specific tokens, NFTs, scores, or metrics, reference the actual data provided. Format your responses clearly and highlight important information using **bold text** for emphasis.
+            
+            When a visual would help, respond with **one JSON spec wrapped in a triple-back-tick fence labelled "chart"**:
+
+            ╭─ How to pick the right **"type"**     ─╮
+            │ • "bar"  → compare values across       │
+            │              distinct categories       │
+            │      (e.g. wallet score breakdown).    │
+            │ • "pie"  → show parts of a whole       │
+            │              (e.g. buy vs sell share). │
+            │ • "line" → show a trend over time      │
+            │              (e.g. daily volume).      │
+            ╰────────────────────────────────────────╯
+
+
+            \`\`\`chart
+            {
+              "type": "<bar|pie|line>",
+              "chartData": [ { "name": "label", "value": 123 }, … ],
+              "config": {
+                "xKey": "name",          // optional – defaults shown
+                "yKey": "value",
+                "valueKey": "value"
+              }
+            }
+            \`\`\`
+            
+            Return **exactly one** such fenced block if (and only if) the user asked
+            for, or would clearly benefit from, a chart. The front-end will render it
+            automatically.`,        },
           {
             role: 'user',
             content: userMessage
@@ -300,8 +328,8 @@ const isAllDataLoaded = () => {
     return response
   }
   
-  // Add this function to handle chat submission
-  const handleChatSubmit = async (e: React.FormEvent) => {
+// Handle chat submission
+const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!chatInput.trim() || chatState.isStreaming) return
   
@@ -309,31 +337,30 @@ const isAllDataLoaded = () => {
       id: Date.now().toString(),
       role: 'user',
       content: chatInput.trim(),
-      timestamp: new Date()
+      timestamp: new Date(),
     }
   
-    setChatState(prev => ({
+    setChatState((prev) => ({
       ...prev,
       messages: [...prev.messages, userMessage],
-      isStreaming: true
+      isStreaming: true,
     }))
-  
     setChatInput('')
   
     try {
       const contextData = prepareContextData()
-      const response = await sendToOpenAI(userMessage.content, contextData)
-      
+      const response = await sendToOpenAI(chatInput.trim(), contextData)
+  
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
-        timestamp: new Date()
+        timestamp: new Date(),
       }
   
-      setChatState(prev => ({
+      setChatState((prev) => ({
         ...prev,
-        messages: [...prev.messages, assistantMessage]
+        messages: [...prev.messages, assistantMessage],
       }))
   
       const reader = response.body?.getReader()
@@ -355,9 +382,9 @@ const isAllDataLoaded = () => {
               try {
                 const parsed = JSON.parse(data)
                 const content = parsed.choices?.[0]?.delta?.content || ''
-                
+  
                 if (content) {
-                  setChatState(prev => {
+                  setChatState((prev) => {
                     const updatedMessages = [...prev.messages]
                     const lastMessage = updatedMessages[updatedMessages.length - 1]
                     if (lastMessage.role === 'assistant') {
@@ -378,39 +405,50 @@ const isAllDataLoaded = () => {
         id: (Date.now() + 2).toString(),
         role: 'assistant',
         content: `Error: ${error instanceof Error ? error.message : 'Failed to get response from AI'}`,
-        timestamp: new Date()
+        timestamp: new Date(),
       }
   
-      setChatState(prev => ({
+      setChatState((prev) => ({
         ...prev,
-        messages: [...prev.messages, errorMessage]
+        messages: [...prev.messages, errorMessage],
+        isStreaming: false,
       }))
     } finally {
-      setChatState(prev => ({ ...prev, isStreaming: false }))
+      setChatState((prev) => ({ ...prev, isStreaming: false }))
     }
   }
   
-  // Add this useEffect to scroll chat to bottom
+  // Scroll to bottom when messages change or chat opens
   useEffect(() => {
-    if (chatContainerRef.current) {
+    if (chatContainerRef.current && chatState.isOpen && !chatState.isMinimized) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
-  }, [chatState.messages])
+  }, [chatState.messages, chatState.isOpen, chatState.isMinimized])
   
-  // AI Copilot Chatbot Component - Add this component
+  // Focus input when chat opens or unminimizes
+  useEffect(() => {
+    if (chatState.isOpen && !chatState.isMinimized && chatInputRef.current) {
+      chatInputRef.current.focus()
+    }
+  }, [chatState.isOpen, chatState.isMinimized])
+  
+  // AI Copilot Chatbot Component
   const AICopilotChatbot = () => {
-    if (!isAllDataLoaded()) return null
-  
     return (
       <div className="relative">
         {/* Chat Toggle Button */}
         {!chatState.isOpen && (
           <Button
-            onClick={() => setChatState(prev => ({ ...prev, isOpen: true }))}
-            className="w-full bg-gradient-to-r from-purple-200 to-pink-200 hover:from-purple-300 hover:to-pink-300 text-black font-bold py-3 px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2"
+            onClick={() => setChatState((prev) => ({ ...prev, isOpen: true }))}
+            disabled={!isAllDataLoaded()}
+            className={`w-full font-bold py-3 px-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 ${
+              isAllDataLoaded()
+                ? 'bg-gradient-to-r from-purple-200 to-pink-200 hover:from-purple-300 hover:to-pink-300 text-black'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Bot className="h-5 w-5" />
-            Ask AI Copilot about your wallet
+            {isAllDataLoaded() ? 'Ask AI Copilot...' : 'Ask AI Copilot...'}
           </Button>
         )}
   
@@ -421,22 +459,22 @@ const isAllDataLoaded = () => {
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-200 to-pink-200 border-b-4 border-black">
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
-                <span className="font-black text-sm">AI Wallet Copilot</span>
+                <span className="font-black text-sm">AI Copilot</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => setChatState(prev => ({ ...prev, isMinimized: !prev.isMinimized }))}
+                  onClick={() => setChatState((prev) => ({ ...prev, isMinimized: !prev.isMinimized }))}
                   size="sm"
                   variant="ghost"
-                  className="p-1 hover:bg-black/10"
+                  className="p-1 bg-black/10 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
                   {chatState.isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                 </Button>
                 <Button
-                  onClick={() => setChatState(prev => ({ ...prev, isOpen: false, messages: [] }))}
+                  onClick={() => setChatState((prev) => ({ ...prev, isOpen: false, messages: [] }))}
                   size="sm"
                   variant="ghost"
-                  className="p-1 hover:bg-black/10"
+                  className="p-1 bg-black/10 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -454,55 +492,68 @@ const isAllDataLoaded = () => {
                         <input
                           type="password"
                           placeholder="Enter your OpenAI API key"
-                          className="flex-1 text-xs p-2 border-2 border-black font-mono"
+                          className="flex-1 text-xs p-2 border-4 border-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                           onChange={(e) => setOpenaiApiKey(e.target.value)}
                         />
                       </div>
-                      <p className="text-xs text-gray-600">Your API key is stored locally and never sent to our servers.</p>
+                      <p className="text-xs text-gray-600 font-bold">
+                        Your API key is stored locally and never sent to our servers.
+                      </p>
                     </div>
                   </div>
                 )}
   
                 {/* Chat Messages */}
-                <div 
+                <div
                   ref={chatContainerRef}
-                  className="h-64 overflow-y-auto p-3 space-y-3 bg-gray-50"
+                  className="h-64 overflow-y-auto p-3 space-y-3 bg-gray-50 border-b-4 border-black"
                 >
                   {chatState.messages.length === 0 && (
-                    <div className="text-center text-gray-500 text-sm">
+                    <div className="text-center text-gray-500 text-sm p-4 border-4 border-gray-300 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                       <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="font-bold">Ask me anything about your wallet!</p>
-                      <p className="text-xs mt-1">Try: "What's my token balance?" or "Tell me about my NFTs"</p>
+                      <p className="font-black">Ask me anything about your wallet!</p>
+                      <p className="text-xs mt-1 font-bold">
+                        Try: "What's my token balance?" or "Show me NFT analytics chart"
+                      </p>
                     </div>
                   )}
   
-                  {chatState.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  {chatState.messages.map((message) => {
+                    const hasChart = message.content.includes('```chart')
+                    const bubbleWidth = hasChart ? 'w-full max-w-none' : 'max-w-xs lg:max-w-md'
+  
+                    return (
                       <div
-                        className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg border-2 border-black font-bold text-sm ${
-                          message.role === 'user'
-                            ? 'bg-blue-200 text-blue-900'
-                            : 'bg-white text-gray-800'
-                        }`}
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                        <div className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
+                        <div
+                          className={`${bubbleWidth} px-4 py-3 border-4 border-black font-bold text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+                            message.role === 'user' ? 'bg-blue-200 text-blue-900' : 'bg-white text-gray-800'
+                          }`}
+                        >
+                          <MessageContent content={message.content} />
+                          <div className="text-xs opacity-70 mt-2 font-bold">
+                            {message.timestamp.toLocaleTimeString()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
   
                   {chatState.isStreaming && (
                     <div className="flex justify-start">
-                      <div className="bg-white border-2 border-black px-3 py-2 rounded-lg">
+                      <div className="bg-white border-4 border-black px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black"></div>
+                          <div
+                            className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black"
+                            style={{ animationDelay: '0.1s' }}
+                          ></div>
+                          <div
+                            className="w-3 h-3 bg-gray-400 rounded-full animate-bounce border-2 border-black"
+                            style={{ animationDelay: '0.2s' }}
+                          ></div>
                         </div>
                       </div>
                     </div>
@@ -511,30 +562,197 @@ const isAllDataLoaded = () => {
   
                 {/* Chat Input */}
                 {openaiApiKey && (
-                  <form onSubmit={handleChatSubmit} className="p-3 border-t-4 border-black bg-white">
-                    <div className="flex gap-2">
-                      <input
+                <form onSubmit={handleChatSubmit} className="p-3 bg-white">
+                    {/* container */}
+                    <div className="flex flex-col md:flex-row gap-2">
+                    {/* input ───────────────────────────────────────────── */}
+                    <input
                         type="text"
+                        ref={chatInputRef}
                         value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Ask about your wallet data..."
-                        className="flex-1 text-sm p-2 border-2 border-black font-bold"
+                        onChange={e => setChatInput(e.target.value)}
+                        placeholder="Ask about your wallet data…"
+                        className="
+                        flex-grow min-w-0                 /* 👉 always fills the remaining space */
+                        text-sm p-3 bg-white
+                        border-4 border-black font-bold
+                        shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                        focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                        outline-none
+                        "
                         disabled={chatState.isStreaming}
-                      />
-                      <Button
+                    />
+
+                    {/* button ───────────────────────────────────────────── */}
+                    <Button
                         type="submit"
                         disabled={!chatInput.trim() || chatState.isStreaming}
-                        className="bg-purple-200 hover:bg-purple-300 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                        className="
+                        flex-shrink-0               /* 👉 never stretches */
+                        md:w-14 md:h-auto           /* fixed width on wide screens */
+                        bg-purple-200 hover:bg-purple-300
+                        border-4 border-black font-bold
+                        shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                        hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                        disabled:opacity-50
+                        grid place-content-center   /* keeps icon centred */
+                        "
+                    >
+                        <Send className="h-5 w-5" />
+                    </Button>
                     </div>
-                  </form>
+                </form>
                 )}
+
               </>
             )}
           </Card>
         )}
+      </div>
+    )
+  }
+
+  const MessageContent = ({ content }: { content: string }) => {
+    // Check if content contains chart data
+    const chartMatch = content.match(/```chart\n([\s\S]*?)\n```/)
+    
+    if (chartMatch) {
+      try {
+        const chartData = JSON.parse(chartMatch[1])
+        return (
+          <div className="space-y-3">
+            {content.replace(/```chart\n[\s\S]*?\n```/, '').trim() && (
+              <div className="formatted-text">
+                {formatMessageText(content.replace(/```chart\n[\s\S]*?\n```/, '').trim())}
+              </div>
+            )}
+            <ChartRenderer data={chartData} />
+          </div>
+        )
+      } catch (e) {
+        return <div className="formatted-text">{formatMessageText(content)}</div>
+      }
+    }
+    
+    return <div className="formatted-text">{formatMessageText(content)}</div>
+  }
+
+  const formatMessageText = (text: string) => {
+    // Split by lines and process each
+    return text.split('\n').map((line, index) => {
+      // Handle bold text **text**
+      const boldFormatted = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-black bg-yellow-200 px-1 border-2 border-black">$1</strong>')
+      
+      // Handle code blocks `code`
+      const codeFormatted = boldFormatted.replace(/`(.*?)`/g, '<code class="bg-gray-200 px-2 py-1 border-2 border-black font-mono text-xs">$1</code>')
+      
+      return (
+        <div key={index} className={index > 0 ? 'mt-2' : ''} dangerouslySetInnerHTML={{ __html: codeFormatted }} />
+      )
+    })
+  }
+  
+  const ChartRenderer = ({ data }: { data: any }) => {
+    const { type, chartData, config } = data
+    
+    if (!chartData || !Array.isArray(chartData)) return null
+    
+    const getChart = () => {
+      switch (type) {
+        case 'bar':
+        return (
+            <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={config?.xKey || 'name'} fontSize={10} />
+                <YAxis fontSize={10} />
+                <Tooltip
+                contentStyle={{
+                    border: '4px solid black',
+                    backgroundColor: 'white',
+                    fontWeight: 'bold',
+                    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+                }}
+                />
+                {/* ⬇️  new, thicker columns – stroke removed */}
+                <Bar
+                dataKey={config?.yKey || 'value'}
+                fill="#6366f1"
+                barSize={28}          // <- sets a sensible column width
+                radius={[2, 2, 0, 0]} // <- keeps the rounded top
+                />
+            </BarChart>
+            </ResponsiveContainer>
+        )
+        
+        case 'pie':
+          return (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={60}
+                  dataKey={config?.valueKey || 'value'}
+                  stroke="#000"
+                  strokeWidth={2}
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {chartData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={['#10b981', '#ef4444', '#f59e0b', '#6366f1'][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    border: '4px solid black', 
+                    backgroundColor: 'white',
+                    fontWeight: 'bold',
+                    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)'
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )
+        
+        case 'line':
+          return (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={config?.xKey || 'name'} fontSize={10} />
+                <YAxis fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    border: '4px solid black', 
+                    backgroundColor: 'white',
+                    fontWeight: 'bold',
+                    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)'
+                  }} 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey={config?.yKey || 'value'} 
+                  stroke="#6366f1" 
+                  strokeWidth={3} 
+                  dot={{ fill: '#6366f1', stroke: '#000', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )
+        
+        default:
+          return (
+            <div className="flex items-center justify-center h-full text-gray-500 font-bold">
+              <p>Unsupported chart type: {type}</p>
+            </div>
+          )
+      }
+    }
+    
+    return (
+      <div className="w-full h-48 bg-gray-50 border-4 border-black p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        {getChart()}
       </div>
     )
   }
