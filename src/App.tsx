@@ -731,7 +731,7 @@ const parseBraceArray = <T extends string | number = string>(raw: string | any):
   }
 
   return (
-  <div className="w-full min-h-screen bg-rose-400 overflow-hidden flex flex-col p-4">
+  <div className="w-full min-h-screen bg-purple-400 overflow-hidden flex flex-col p-4">
     {error && (
       <div className="p-3 md:p-4 bg-red-100 border-4 border-black text-black font-bold mb-4 text-sm md:text-base">
         {error}
